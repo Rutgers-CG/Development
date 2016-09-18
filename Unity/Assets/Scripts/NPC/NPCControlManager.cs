@@ -60,7 +60,6 @@ namespace NPC {
 	    // Use this for initialization
 	    void Awake () {
             try {
-                transform.position = Vector3.zero;
                 transform.rotation = Quaternion.identity;
                 FindMainNPC();
                 g_NPCCamera = Camera.main.GetComponent<NPCCamController>();
