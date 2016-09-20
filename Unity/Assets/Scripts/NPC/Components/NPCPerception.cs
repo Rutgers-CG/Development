@@ -1,17 +1,20 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace NPC {
 
     [System.Serializable]
     public class NPCPerception : MonoBehaviour {
 
-        /// <summary>
-        /// Main Controller Handle
-        /// </summary>
+        #region Members
         NPCController g_Controller;
         private static string PERCEPTION_LAYER = "Ignore Raycast";
         private static string PERCEPTION_FIELD_OBJECT = "PerpcetionField";
+        private IPerceivable g_CurrentlyPerceivedTarget;
+        private bool g_Perceiving;
+        private Dictionary<GameObject,IPerceivable> g_PerceivingMap;
+        #endregion
 
         #region Static Fields
         public static float MIN_VIEW_ANGLE = 75f;
@@ -45,9 +48,10 @@ namespace NPC {
         public SphereCollider PerceptionField {
             get { return this.gPerceptionField; }
             set { gPerceptionField = value; }
-        }   
+        }
         #endregion
 
+        #region Unity_Methods
         void Reset() {
             Debug.Log("Initializing NPCPerception...");
             // add perception fields
@@ -71,9 +75,38 @@ namespace NPC {
             gViewAngle = (MIN_VIEW_ANGLE + MAX_VIEW_ANGLE) / 2;
             // collisions / reach
         }
+        void Start() {
+            g_Perceiving = false;
+            g_CurrentlyPerceivedTarget = null;
+        }
 
-        public void UpdatePerception() { }
+        void OnTriggerEnter(Collider col) {
+            IPerceivable p = col as IPerceivable;
+            if (p != null) {
+                Debug.Log("I see an " + col.name);
+                g_PerceivingMap.Add(col.gameObject, p);
+            }
+        }
 
+        void OnTriggerExit(Collider col) {
+            IPerceivable p = col as IPerceivable;
+            if (p != null && g_PerceivingMap.ContainsValue(p)) {
+                Debug.Log("I can't see the " + col.name + " no more");
+                g_PerceivingMap.Remove(col.gameObject);
+            }
+        }
+
+        #endregion
+
+        #region Public_Functions
+        public void UpdatePerception() {
+            // we will be throwing rays here
+        }
+        public float CalculatePerceptionWeight(IPerceivable p) {
+            return 0f;
+        }
+        #endregion
+        
     }
 
 }

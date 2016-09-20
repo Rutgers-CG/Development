@@ -4,6 +4,7 @@ using System;
 
 namespace NPC {
 
+    #region Enums
     public enum LOCO_STATE {
         IDLE,
         FRONT,
@@ -24,10 +25,13 @@ namespace NPC {
         STEERING_NAV,
         NAVMESH_NAV
     }
+    #endregion
 
     [System.Serializable]
     public class NPCBody : MonoBehaviour {
 
+
+        #region Members
         NavMeshAgent gNavMeshAgent;
         Rigidbody gRigidBody;
         Animator g_Animator;
@@ -35,6 +39,7 @@ namespace NPC {
         NPCIKController gIKController;
 
         private bool g_LookingAround = false;
+        private Vector3 g_TargetLocation;
 
         private static string g_AnimParamSpeed      = "Speed";
         private static string g_AnimParamDirection  = "Direction";
@@ -54,8 +59,24 @@ namespace NPC {
         // This correlate with the parameters from the Animator
         private float g_CurrentSpeed            = 0.0f;
         private float g_CurrentVelocity         = 0.05f;
+        private float g_TurningVelocity         = 0.1f;
         private float g_CurrentOrientation      = 0.0f;
         private bool g_Navigating = false;
+        private static int gHashJump = Animator.StringToHash("JumpLoco");
+        private static int gHashIdle = Animator.StringToHash("Idle");
+
+        [System.ComponentModel.DefaultValue(1f)]
+        private float MaxWalkSpeed { get; set; }
+
+        [System.ComponentModel.DefaultValue(2f)]
+        private float MaxRunSpeed { get; set; }
+
+        [System.ComponentModel.DefaultValue(-1f)]
+        private float TurnLeftAngle { get; set; }
+
+        [System.ComponentModel.DefaultValue(1f)]
+        private float TurnRightAngle { get; set; }
+        #endregion
 
         #region Properties
 
@@ -63,6 +84,7 @@ namespace NPC {
         public bool UseCurves;
         public bool IKEnabled;
         public bool UseAnimatorController;
+        public float NavDistanceThreshold   = 0.3f;
 
         public bool LookingAround {
             get {
@@ -93,23 +115,7 @@ namespace NPC {
         }
         #endregion
 
-        #region StateHash
-        private static int gHashJump = Animator.StringToHash("JumpLoco");
-        private static int gHashIdle = Animator.StringToHash("Idle");
-        #endregion
-
-        [System.ComponentModel.DefaultValue(1f)]
-        private float MaxWalkSpeed { get; set; }
-
-        [System.ComponentModel.DefaultValue(2f)]
-        private float MaxRunSpeed { get; set; }
-
-        [System.ComponentModel.DefaultValue(-1f)]
-        private float TurnLeftAngle { get; set; }
-
-        [System.ComponentModel.DefaultValue(1f)]
-        private float TurnRightAngle { get; set; }
-
+        #region Unity_Methods
         void Reset() {
 
             Debug.Log("Initializing NPCBody ... ");
@@ -152,12 +158,13 @@ namespace NPC {
             if (g_Animator == null || gNavMeshAgent == null || gNavMeshAgent.enabled) UseAnimatorController = false;
             if (gIKController == null) IKEnabled = false;
         }
+        #endregion
 
-        /// <summary>
-        /// Control all the body's parameters for speed, orientation, etc...
-        /// </summary>
+        #region Public_Funtions
         public void UpdateBody() {
             
+            UpdateNavigation();    
+
             if(UseAnimatorController) {
                 
                 // If accidentally checked
@@ -166,11 +173,7 @@ namespace NPC {
                     UseAnimatorController = false;
                     return;
                 }
-
-                if (g_Navigating) {
-                    // GoTo();    
-                }
-
+                
                 // handle mod
                 float  forth    = g_CurrentStateFwd == LOCO_STATE.FORWARD ? 1.0f : -1.0f;
                 float  orient   = g_CurrentStateDir == LOCO_STATE.RIGHT ? 1.0f : -1.0f;
@@ -193,13 +196,11 @@ namespace NPC {
 
                 // update direction
                 if (g_CurrentStateDir != LOCO_STATE.FRONT) {
-                    g_CurrentOrientation = Mathf.Clamp(g_CurrentOrientation + (g_CurrentVelocity * orient), -1.0f, 1.0f);
+                    g_CurrentOrientation = Mathf.Clamp(g_CurrentOrientation + (g_TurningVelocity * orient), -1.0f, 1.0f);
                 } else {
-                    if (g_CurrentStateDir != 0.0f) {
-                        float m = g_CurrentVelocity * (g_CurrentOrientation > 0.0f ? -1.0f : 1.0f);
-                        float stopDelta = g_CurrentOrientation + m;
-                        g_CurrentOrientation = Mathf.Abs(stopDelta) > 0.05f ? stopDelta : 0.0f;
-                    }
+                    float m = g_TurningVelocity * (g_CurrentOrientation > 0.0f ? -1.0f : 1.0f);
+                    g_CurrentOrientation += m;
+                    g_CurrentOrientation = Mathf.Abs(g_CurrentOrientation) > (g_TurningVelocity * 2) ? g_CurrentOrientation : 0.0f;
                 }
 
                 // update ground
@@ -222,13 +223,9 @@ namespace NPC {
                 g_Animator.SetFloat(g_AnimParamDirection, g_CurrentOrientation);
 
                 // reset all states until updated again
-                g_CurrentStateDir = LOCO_STATE.FRONT;
-                g_CurrentStateFwd = LOCO_STATE.IDLE;
-                g_CurrentStateMod = LOCO_STATE.WALK;
+                SetIdle();
             }
         }
-
-        #region Affordances
         
         public void Move(LOCO_STATE s) {
             switch (s) {
@@ -257,23 +254,9 @@ namespace NPC {
         }
 
         public void GoTo(Vector3 location) {
-            if(Navigation != NAV_STATE.DISABLED) {
-                if(Navigation == NAV_STATE.STEERING_NAV) {
-                    if(g_Navigating) {
-                        // select next point and go towards it
-                    } else {
-                        // recreate points queue
-                    }
-                } else {
-                    if(gNavMeshAgent != null) {
-
-                        if (!gNavMeshAgent.enabled)
-                            gNavMeshAgent.enabled = true;
-
-                        gNavMeshAgent.SetDestination(location);
-                    }
-                }
-            }
+            SetIdle();
+            Debug.Log("Navigating to: " + location);
+            g_TargetLocation = location;
         }
 
         /// <summary>
@@ -302,6 +285,62 @@ namespace NPC {
         public void LookAt(Transform t) {
             gIKController.LOOK_AT_TARGET = t;
         }
+        #endregion
+
+        #region Private_Functions
+
+        private void UpdateNavigation() {
+            if (Navigation != NAV_STATE.DISABLED) {
+                if (Navigation == NAV_STATE.STEERING_NAV) {
+                    HandleSteering();
+                } else {
+                    HandleNavAgent();
+                }
+            } else {
+                g_TargetLocation = Vector3.zero;
+                g_Navigating = false;
+            }
+        }
+
+        private void HandleNavAgent() {
+            if (gNavMeshAgent != null) {
+                if (!gNavMeshAgent.enabled)
+                    gNavMeshAgent.enabled = true;
+                gNavMeshAgent.SetDestination(g_TargetLocation);
+            }
+        }
+
+        private void HandleSteering() {
+            float distance = Vector3.Distance(transform.position, g_TargetLocation);
+            Vector3 targetDirection = g_TargetLocation - transform.position;
+            float angle = Vector3.Angle(targetDirection, transform.forward);
+            LOCO_STATE d = Direction(targetDirection) < 1.0f ? LOCO_STATE.LEFT : LOCO_STATE.RIGHT;
+            g_Navigating = distance > NavDistanceThreshold;
+            if (g_Navigating) {
+                if (angle > 25.0f
+                    && g_CurrentStateFwd != LOCO_STATE.FORWARD) {
+                    Move(d);
+                } else {
+                    Move(LOCO_STATE.FORWARD);
+                    if (angle > 2.0f) {
+                        Move(d);
+                    } else Move(LOCO_STATE.FRONT);
+                }
+            }
+        }
+
+        private float Direction(Vector3 direction) {
+            Vector3 perp = Vector3.Cross(transform.forward, direction);
+            float dir = Vector3.Dot(perp, transform.up);
+            return dir > 0f ? 1.0f : (dir < 0 ? -1.0f : 0f);
+        }
+
+        private void SetIdle() {
+            g_CurrentStateFwd = LOCO_STATE.IDLE;
+            g_CurrentStateGnd = LOCO_STATE.GROUND;
+            g_CurrentStateDir = LOCO_STATE.FRONT;
+            g_CurrentStateMod = LOCO_STATE.WALK;
+    }
 
         #endregion
     }

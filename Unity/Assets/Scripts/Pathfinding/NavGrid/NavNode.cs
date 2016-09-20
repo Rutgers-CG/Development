@@ -13,15 +13,16 @@ namespace Pathfinding {
         #endregion
 
         #region Constructor
-        public NavNode(Vector3 position, bool walkable, float radius) {
+        public NavNode(Vector3 position, Vector2 gridPos, bool walkable, float radius) {
             g_Radius = radius;
             g_Position = position;
             g_Walkable = walkable;
+            g_GridPosition = gridPos;
         }
-        public NavNode(Vector3 position, Vector3 up, bool walkable, float radius) : this(position, walkable, radius) {
+        public NavNode(Vector3 position, Vector2 gridPos, Vector3 up, bool walkable, float radius) : this(position,gridPos, walkable, radius) {
             g_Up = up;
         }
-        public NavNode(Vector3 position, Vector3 up, float blockingHeight, bool walkable, float radius) : this(position, up, walkable, radius) {
+        public NavNode(Vector3 position, Vector2 gridPos, Vector3 up, float blockingHeight, bool walkable, float radius) : this(position, gridPos, up, walkable, radius) {
             g_BlockingHeight = blockingHeight;
         }
         #endregion
@@ -32,6 +33,9 @@ namespace Pathfinding {
         }
         public Vector3 Position {
             get { return g_Position; }
+        }
+        public Vector2 GridPosition {
+            get {  return g_GridPosition; }             
         }
         public float BlockingHeight {
             get { return g_BlockingHeight; }
@@ -56,6 +60,7 @@ namespace Pathfinding {
         private float    g_BlockingHeight;
         private bool     g_Walkable;
         private int      g_Weight= 1;
+        private Vector2  g_GridPosition;
         #endregion
 
         #region Public_Functions

@@ -105,40 +105,42 @@ namespace NPC {
                     g_NPCController.Body.LookAround(false);
                     g_Camera.ResetView();
                 }   
-            }
+            } else {
 
-            // select agent
-            if (Input.GetKey((KeyCode)INPUT_KEY.SELECT_AGENT)) {
-                // not dragging
-                if(g_SelectDragging) {
-                    // TODO
-                } else {
-                    RaycastHit hitInfo = new RaycastHit();
-                    bool clickedOn = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
-                    if (clickedOn) {
-                        // handle single selection
-                        NPCController npc = hitInfo.transform.gameObject.GetComponent<NPCController>();
-                        if (npc != null) {
-                            if (g_NPCController != null) g_NPCController.SetSelected(false);
-                            g_NPCController = npc;
-                            npc.SetSelected(true);
-                        } else {
-                            // deselect
-                            if (g_NPCController != null) {
-                                g_NPCController.SetSelected(false);
-                                g_NPCController = null;
+                // select agent
+                if (Input.GetKey((KeyCode)INPUT_KEY.SELECT_AGENT)) {
+                    // not dragging
+                    if(g_SelectDragging) {
+                        // TODO
+                    } else {
+                        RaycastHit hitInfo = new RaycastHit();
+                        bool clickedOn = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
+                        if (clickedOn) {
+                            // handle single selection
+                            NPCController npc = hitInfo.transform.gameObject.GetComponent<NPCController>();
+                            if (npc != null) {
+                                if (g_NPCController != null) g_NPCController.SetSelected(false);
+                                g_NPCController = npc;
+                                npc.SetSelected(true);
+                            } else {
+                                // deselect
+                                if (g_NPCController != null) {
+                                    g_NPCController.SetSelected(false);
+                                    g_NPCController = null;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            if (Input.GetKeyDown((KeyCode)INPUT_KEY.CONTEXT_ACTION)) {
-                if(g_NPCController != null) {
-                    RaycastHit hitInfo = new RaycastHit();
-                    bool clickedOn = Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo);
-                    if (clickedOn) {
-                        g_NPCController.GoTo(hitInfo.point);
+                if (Input.GetKeyDown((KeyCode)INPUT_KEY.CONTEXT_ACTION)) {
+                    if(g_NPCController != null) {
+                        if(g_Camera.CurrentMode == NPCCamController.CAMERA_MODE.ISOMETRIC) {
+                            RaycastHit hitInfo = new RaycastHit();
+                            if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo)) {
+                                g_NPCController.GoTo(hitInfo.point);
+                            }
+                        }
                     }
                 }
             }

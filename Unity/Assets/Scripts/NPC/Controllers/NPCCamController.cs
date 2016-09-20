@@ -102,23 +102,28 @@ namespace NPC {
             CurrentMode = mode;
             switch (CurrentMode) {
                 case CAMERA_MODE.FREE:
-                    if (Target != null) SetThirdPersonView();
+                    if (Target != null) {
+                        Target.Body.Navigation = NAV_STATE.DISABLED;
+                        SetThirdPersonView();
+                    }
                     g_NPCControlManager.SetIOTarget(null);
                     break;
                 case CAMERA_MODE.FIRST_PERSON:
                     if (Target != null) {
+                        Target.Body.Navigation = NAV_STATE.DISABLED;
                         SetFirstPersonView();
                         g_NPCControlManager.SetIOTarget(Target);
                     } else noTarget = true;
                     break;
                 case CAMERA_MODE.THIRD_PERSON:
                     if (Target != null) {
-                        g_NPCControlManager.SetIOTarget(Target);
+                        Target.Body.Navigation = NAV_STATE.DISABLED;
                         SetThirdPersonView();
                     }
                     else noTarget = true;
                     break;
                 case CAMERA_MODE.ISOMETRIC:
+                    if (Target != null) Target.Body.Navigation = NAV_STATE.STEERING_NAV;
                     SetIsometricView();
                     break;
             }

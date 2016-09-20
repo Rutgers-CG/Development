@@ -37,6 +37,7 @@ namespace Pathfinding {
                 for (int col = 0; col < tilesY; ++col) {
                     NavNode node = new NavNode(
                         gridWorldBottom + (transform.right * (nodeDiameter) * row) + transform.forward * (nodeDiameter) * col,
+                        new Vector2(row,col),
                         transform.up,
                         BlockingHeight,
                         true,

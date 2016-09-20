@@ -17,6 +17,7 @@ namespace NPC {
         private const string label_SelectHighlight = "Enable Selection Indicator";
         private const string label_AnimatorEnabled = "Use Animator";
         private const string label_UseAnimCurves = "Use Animation Curves";
+        private const string label_NavStoppingThresh = "Breaking Threshold";
         #endregion
 
         #region Insperctor_GUI
@@ -56,6 +57,8 @@ namespace NPC {
                 EditorGUILayout.LabelField(label_BodyNavigation);
                 gController.Body.Navigation = (NAV_STATE)EditorGUILayout.EnumPopup((NAV_STATE)gController.Body.Navigation);
                 EditorGUILayout.EndHorizontal();
+                if(gController.Body.Navigation != NAV_STATE.DISABLED)
+                    gController.Body.NavDistanceThreshold = (float) EditorGUILayout.FloatField(label_NavStoppingThresh, (float) gController.Body.NavDistanceThreshold);
                 gController.Body.IKEnabled = (bool)EditorGUILayout.Toggle(label_IKEnabled, (bool)gController.Body.IKEnabled);
                 gController.Body.UseAnimatorController = (bool)EditorGUILayout.Toggle(label_AnimatorEnabled, (bool)gController.Body.UseAnimatorController);
                 gController.Body.UseCurves = (bool)EditorGUILayout.Toggle(label_UseAnimCurves, (bool)gController.Body.UseCurves);

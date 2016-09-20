@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 namespace NPC {
 
@@ -50,6 +51,7 @@ namespace NPC {
         }
         #endregion
 
+        #region Public_Functions
         public void SetSelected(bool sel) {
             g_Selected = sel;
             g_SelectedEffect.SetActive(sel && DisplaySelectedHighlight);
@@ -58,6 +60,7 @@ namespace NPC {
         public void GoTo(Vector3 t) {
             gBody.GoTo(t);
         }
+        #endregion
 
         #region Unity_Runtime
         // Use this for initialization
@@ -69,6 +72,7 @@ namespace NPC {
         }
 	
         void FixedUpdate() {
+            gPerception.UpdatePerception();
             gBody.UpdateBody();
         }
 
@@ -95,7 +99,7 @@ namespace NPC {
 
         #endregion
 
-        #region Initialization
+        #region Private_Functions
 
         private void InitializeNPCComponents() {
             gAI = new NPCAI(this);
@@ -107,11 +111,9 @@ namespace NPC {
             gPerception.hideFlags = HideFlags.HideInInspector;
         }
 
-        #endregion
-
         private void CreateSelectedEffect() {
             Material m = Resources.Load<Material>("Materials/NPCSelectedCircle");
-            if(m != null) {
+            if (m != null) {
                 g_SelectedEffect = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 g_SelectedEffect.transform.parent = gameObject.transform;
                 g_SelectedEffect.layer = LayerMask.NameToLayer("Ignore Raycast");
@@ -128,6 +130,14 @@ namespace NPC {
                 Debug.Log("NPCController --> Couldn't load NPC materials, do not forget to add the to the Resources folder");
             }
         }
+
+        #endregion
+
+        #region IPerceivable
+        PERCEIVE_WEIGHT IPerceivable.GetPerceptionWeightType() {
+            return PERCEIVE_WEIGHT.WEIGHTED;
+        }
+        #endregion
 
     }
 

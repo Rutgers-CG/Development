@@ -72,6 +72,9 @@ namespace NPC {
                 if (NPCController != null) {
                     g_IO.SetTarget(NPCController);
                     g_NPCCamera.SetTarget(NPCController);
+                    g_NPCCamera.UpdateCameraMode(NPCCamController.CAMERA_MODE.THIRD_PERSON);
+                } else {
+                    g_NPCCamera.UpdateCameraMode(NPCCamController.CAMERA_MODE.ISOMETRIC);
                 }
             } catch(System.Exception e) {
                 Debug.Log("NPCControlManager --> Components missing from the controller, please add them. Disabling controller: " + e.Message);
