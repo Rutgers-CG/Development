@@ -1,5 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
+using Pathfinding;
+using System.Collections.Generic;
 
 namespace NPC {
 
@@ -18,24 +20,56 @@ namespace NPC {
         private const string label_AnimatorEnabled = "Use Animator";
         private const string label_UseAnimCurves = "Use Animation Curves";
         private const string label_NavStoppingThresh = "Breaking Threshold";
+        private const string label_AIPathfind = "Pathfinder";
+        private const string label_NPCLoadedMods = "Loaded NPC Modules";
         #endregion
 
         #region Insperctor_GUI
         private bool gGeneralSettings = true;
         private bool gShowPerception = true;
         private bool gShowBody = true;
+        private bool gShowAI = true;
+        private bool gShowMods = true;
         #endregion
 
         public override void OnInspectorGUI() {
 
+
             gController = (NPCController) target;
+            
+            /*
+             * Look for added compatible added components, extend with interface later on
+             */
+            /**/
 
             EditorGUI.BeginChangeCheck();
 
-            gGeneralSettings = EditorGUILayout.Foldout(gGeneralSettings, "General Settings");
+            
+            if (gController.GetComponent<INPCModule>() != null) {
+                gShowMods = EditorGUILayout.Foldout(gShowMods, "NPC Modules");
+                if (gShowMods) {
+                    INPCModule[] modules = gController.GetComponents<INPCModule>();
+                    foreach(INPCModule m in modules) {
+                        if (!gController.ContainsModule(m)) {
+                            Debug.Log("Loading NPC Module -> " + m.NPCModuleName());
+                            if(!gController.AddNPCModule(m)) {
+                                DestroyImmediate((Object) m);
+                            }
+                        }
+                    }
+                
+                    INPCModule[] mods = gController.NPCModules;
+                    foreach(INPCModule m in mods) {
+                        EditorGUILayout.LabelField(m.NPCModuleName());
+                    }
+                }
+            } else EditorGUILayout.LabelField("No NPC Modules Loaded");
 
-            gController.MainAgent = (bool)EditorGUILayout.Toggle(label_MainAgent, (bool)gController.MainAgent);
-            gController.DisplaySelectedHighlight = (bool)EditorGUILayout.Toggle(label_SelectHighlight, (bool)gController.DisplaySelectedHighlight);
+            gGeneralSettings = EditorGUILayout.Foldout(gGeneralSettings, "General Settings");
+            if(gGeneralSettings) { 
+                gController.MainAgent = (bool)EditorGUILayout.Toggle(label_MainAgent, (bool)gController.MainAgent);
+                gController.DisplaySelectedHighlight = (bool)EditorGUILayout.Toggle(label_SelectHighlight, (bool)gController.DisplaySelectedHighlight);
+            }
 
             /* Perception Sliders */
             gShowPerception = EditorGUILayout.Foldout(gShowPerception, "Perception") && gController.Perception != null;
@@ -48,6 +82,23 @@ namespace NPC {
                     (int) NPCPerception.MAX_PERCEPTION_FIELD);
             }
 
+            gShowAI = EditorGUILayout.Foldout(gShowAI, "AI") && gController.AI != null;
+
+            if(gShowAI) {
+                if(gController.AI.Pathfinders != null) {
+                    string[] pfds = new string[gController.AI.Pathfinders.Count];
+                    gController.AI.Pathfinders.Keys.CopyTo(pfds, 0);
+                    int selected = 0;
+                    if(gController.AI.CurrentPathfinder != null) {
+                        for (int i = 0; i < pfds.Length; ++i) { 
+                            if (pfds[i] == ((INPCModule)gController.AI.CurrentPathfinder).NPCModuleName())
+                                selected = i;
+                        }
+                    }
+                    selected = EditorGUILayout.Popup("Pathfinders", selected , pfds);
+                    gController.AI.CurrentPathfinder = gController.AI.Pathfinders[pfds[selected]];
+                }
+            }
 
             gShowBody = EditorGUILayout.Foldout(gShowBody, "Body") && gController.Body != null;
             if(gShowBody) {

@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System;
 
 namespace NPC {
@@ -257,6 +258,10 @@ namespace NPC {
             SetIdle();
             Debug.Log("Navigating to: " + location);
             g_TargetLocation = location;
+        }
+
+        public void GoTo(List<Vector3> location) {
+            return;
         }
 
         /// <summary>

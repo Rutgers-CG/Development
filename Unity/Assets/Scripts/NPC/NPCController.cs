@@ -1,13 +1,20 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
+using System.Collections.Generic;
 
 namespace NPC {
 
     public class NPCController : MonoBehaviour, IPerceivable {
 
+        [SerializeField]
+        Dictionary<string, INPCModule> g_NPCModules;
+
+        [SerializeField]
         GameObject g_SelectedEffect;
+
         private bool g_Selected;
+
         public bool DisplaySelectedHighlight = true;
 
         private static string SELECTION_EFFECT = "SelectionEffect";
@@ -34,9 +41,23 @@ namespace NPC {
         private bool gInitialized = false;
 
         #region Properties
+        public INPCModule[] NPCModules {
+            get {
+                if (g_NPCModules == null) return new INPCModule[0];
+                INPCModule[] mods = new INPCModule[g_NPCModules.Count];
+                g_NPCModules.Values.CopyTo(mods, 0);
+                return mods;
+            }
+        }
+
         [SerializeField]
         public NPCPerception Perception {
             get { return gPerception; }
+        }
+
+        [SerializeField]
+        public NPCAI AI {
+            get { return gAI; }
         }
 
         [SerializeField]
@@ -57,10 +78,30 @@ namespace NPC {
             g_SelectedEffect.SetActive(sel && DisplaySelectedHighlight);
         }
 
-        public void GoTo(Vector3 t) {
-            gBody.GoTo(t);
+        public bool ContainsModule(INPCModule mod) {
+            return g_NPCModules != null && g_NPCModules.ContainsKey(mod.NPCModuleName());
         }
-        #endregion
+
+        public void GoTo(Vector3 t) {
+            List<Vector3> path = gAI.FindPath(t);
+            if (path.Count <= 1)
+                gBody.GoTo(t);
+            else
+                gBody.GoTo(path);
+        }
+
+        public bool AddNPCModule(INPCModule mod) {
+            if (g_NPCModules == null) g_NPCModules = new Dictionary<string, INPCModule>();
+            if (g_NPCModules.ContainsKey(mod.NPCModuleName())) return false;
+            switch(mod.NPCModuleTarget()) {
+                case NPC_MODULE_TARGET.AI:
+                    gAI.SetNPCModule(mod);
+                    break;
+            }
+            g_NPCModules.Add(mod.NPCModuleName(), mod);
+            return true;
+        }
+        #endregion 
 
         #region Unity_Runtime
         // Use this for initialization
@@ -86,6 +127,7 @@ namespace NPC {
         // When script is added to GameObject or Reset
         void Reset() {
             if(!gInitialized) {
+                g_NPCModules = new Dictionary<string, INPCModule>();
                 Debug.Log("Creating NPCController");
                 gMainAgent = false;
                 if (GetComponent<NPCBody>() != null) DestroyImmediate(GetComponent<NPCBody>());
