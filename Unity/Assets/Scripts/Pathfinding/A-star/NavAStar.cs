@@ -8,18 +8,20 @@ using NPC;
 
 public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
 
-    bool g_NPCModuleEnabled = true;
+    public bool EnableNPCModule = true;
 
     public bool ComputeCost(NavNode n) {
         throw new NotImplementedException();
     }
 
     public List<Vector3> FindPath(Vector3 from, Vector3 to) {
-        throw new NotImplementedException();
+        List<Vector3> list = new List<Vector3>();
+        list.Add(to);
+        return list;
     }
 
     public bool IsEnabled() {
-        return g_NPCModuleEnabled;
+        return EnableNPCModule;
     }
 
     public bool IsReachable(Vector3 from, Vector3 target) {
@@ -39,6 +41,6 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
     }
 
     public void SetEnable(bool e) {
-        g_NPCModuleEnabled = e;
+        EnableNPCModule = e;
     }
 }

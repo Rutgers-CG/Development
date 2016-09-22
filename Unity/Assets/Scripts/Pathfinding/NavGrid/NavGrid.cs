@@ -65,8 +65,7 @@ namespace Pathfinding {
                   gridSizeY = Mathf.RoundToInt(GridDimensions.y / nodeDiameter);
             PopulateGrid();
         }
-
-
+        
         // Update is called once per frame
         void Update () { }
 
@@ -124,6 +123,16 @@ namespace Pathfinding {
                     Gizmos.color = Color.white;
                 }
             }
+        }
+        #endregion
+
+        #region Public_Functions
+        public bool IsValid(Vector2 coord) {
+            return 
+                !(coord.x < 0 || coord.y < 0) &&
+                (coord.x < GridDimensions.x) && 
+                (coord.y < GridDimensions.y) && 
+                (g_Grid[(int)coord.x, (int)coord.y].IsWalkable());
         }
         #endregion
     }

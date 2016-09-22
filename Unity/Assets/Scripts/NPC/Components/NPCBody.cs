@@ -66,6 +66,9 @@ namespace NPC {
         private static int gHashJump = Animator.StringToHash("JumpLoco");
         private static int gHashIdle = Animator.StringToHash("Idle");
 
+        // navigation queue
+        List<Vector3> g_NavQueue;
+
         [System.ComponentModel.DefaultValue(1f)]
         private float MaxWalkSpeed { get; set; }
 
@@ -82,6 +85,7 @@ namespace NPC {
         #region Properties
 
         public NAV_STATE Navigation;
+        public bool Navigating;
         public bool UseCurves;
         public bool IKEnabled;
         public bool UseAnimatorController;
@@ -158,6 +162,7 @@ namespace NPC {
             if (Navigation == NAV_STATE.NAVMESH_NAV) gNavMeshAgent.enabled = true;
             if (g_Animator == null || gNavMeshAgent == null || gNavMeshAgent.enabled) UseAnimatorController = false;
             if (gIKController == null) IKEnabled = false;
+            g_NavQueue = new List<Vector3>();
         }
         #endregion
 
@@ -256,12 +261,13 @@ namespace NPC {
 
         public void GoTo(Vector3 location) {
             SetIdle();
-            Debug.Log("Navigating to: " + location);
-            g_TargetLocation = location;
+            g_NavQueue = new List<Vector3>();
+            g_NavQueue.Add(location);
         }
 
         public void GoTo(List<Vector3> location) {
-            return;
+            SetIdle();
+            g_NavQueue = location;
         }
 
         /// <summary>
@@ -297,7 +303,9 @@ namespace NPC {
         private void UpdateNavigation() {
             if (Navigation != NAV_STATE.DISABLED) {
                 if (Navigation == NAV_STATE.STEERING_NAV) {
-                    HandleSteering();
+                    if(g_NavQueue.Count > 0) {
+                        HandleSteering();
+                    } g_Navigating = false;
                 } else {
                     HandleNavAgent();
                 }
@@ -316,6 +324,7 @@ namespace NPC {
         }
 
         private void HandleSteering() {
+            g_TargetLocation = g_NavQueue[0];
             float distance = Vector3.Distance(transform.position, g_TargetLocation);
             Vector3 targetDirection = g_TargetLocation - transform.position;
             float angle = Vector3.Angle(targetDirection, transform.forward);
@@ -331,6 +340,9 @@ namespace NPC {
                         Move(d);
                     } else Move(LOCO_STATE.FRONT);
                 }
+            } else {
+                // discard the point
+                g_NavQueue.RemoveAt(0);
             }
         }
 
