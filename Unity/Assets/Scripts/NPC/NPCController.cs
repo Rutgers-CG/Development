@@ -6,6 +6,17 @@ using System.Collections.Generic;
 namespace NPC {
 
     public class NPCController : MonoBehaviour, IPerceivable {
+        
+        #region Members
+
+        [SerializeField]
+        private NPCAI gAI;
+
+        [SerializeField]
+        private NPCBody gBody;
+
+        [SerializeField]
+        private NPCPerception gPerception;
 
         [SerializeField]
         Dictionary<string, INPCModule> g_NPCModules;
@@ -13,34 +24,25 @@ namespace NPC {
         [SerializeField]
         GameObject g_SelectedEffect;
 
-        private bool g_Selected;
-
-        public bool DisplaySelectedHighlight = true;
-
-        private static string SELECTION_EFFECT = "SelectionEffect";
-
-        #region AI
-        [SerializeField]
-        private NPCAI gAI;
-        #endregion
-
-        #region BODY
-        [SerializeField]
-        private NPCBody gBody;
-        #endregion
-
-        #region PERCEPTION
-        [SerializeField]
-        private NPCPerception gPerception;
-        #endregion
-
         [SerializeField]
         private bool gMainAgent = false;
 
         [SerializeField]
         private bool gInitialized = false;
 
+        private bool g_Selected;
+
+        public bool DisplaySelectedHighlight = true;
+
+        private static string SELECTION_EFFECT = "SelectionEffect";
+
+        #endregion
+
         #region Properties
+
+        [SerializeField]
+        public bool DebugPrint = true;
+
         public INPCModule[] NPCModules {
             get {
                 if (g_NPCModules == null) return new INPCModule[0];
@@ -71,8 +73,32 @@ namespace NPC {
             set { gMainAgent = value; }
         }
         #endregion
-
+       
         #region Public_Functions
+
+        public  void Debug(string msg) {
+            if(DebugPrint) {
+                UnityEngine.Debug.Log(msg);
+            }
+        }
+
+        public void LoadNPCModules() {
+            INPCModule[] modules = gameObject.GetComponents<INPCModule>();
+            foreach (INPCModule m in modules) {
+                if (!ContainsModule(m)) {
+                    Debug("Loading NPC Module -> " + m.NPCModuleName());
+                    if (!AddNPCModule(m)) {
+                        GameObject.DestroyImmediate((UnityEngine.Object)m);
+                    }
+                }
+            }
+        }
+
+        public void RemoveNPCModule(INPCModule mod) {
+            if(g_NPCModules.ContainsKey(mod.NPCModuleName()))
+                g_NPCModules.Remove(mod.NPCModuleName());
+        }
+
         public void SetSelected(bool sel) {
             g_Selected = sel;
             g_SelectedEffect.SetActive(sel && DisplaySelectedHighlight);
@@ -84,9 +110,10 @@ namespace NPC {
 
         public void GoTo(Vector3 t) {
             List<Vector3> path = gAI.FindPath(t);
-            if (path.Count <= 1)
+            if (path.Count <= 1) {
+                Debug("NPCController --> GoTo Path came out empty, defaulting to target location");
                 gBody.GoTo(t);
-            else
+            } else
                 gBody.GoTo(path);
         }
 
@@ -97,6 +124,10 @@ namespace NPC {
                 case NPC_MODULE_TARGET.AI:
                     gAI.SetNPCModule(mod);
                     break;
+                case NPC_MODULE_TARGET.BODY:
+                    break;
+                case NPC_MODULE_TARGET.PERCEPTION:
+                    break;
             }
             g_NPCModules.Add(mod.NPCModuleName(), mod);
             return true;
@@ -104,10 +135,9 @@ namespace NPC {
         #endregion 
 
         #region Unity_Runtime
-        // Use this for initialization
-        void Start () {
-            gBody = gameObject.GetComponent<NPCBody>();
-            gPerception = gameObject.GetComponent<NPCPerception>();
+
+        void Awake () {
+            LoadNPCModules();
             g_SelectedEffect = transform.FindChild(SELECTION_EFFECT).gameObject;
             SetSelected(MainAgent);
         }
@@ -116,39 +146,38 @@ namespace NPC {
             gPerception.UpdatePerception();
             gBody.UpdateBody();
         }
-
-	    // Update is called once per frame
+        
 	    void Update () {
             if(g_Selected) {
                 g_SelectedEffect.transform.Rotate(gameObject.transform.up, 1.0f);        
             }
         }
-
-        // When script is added to GameObject or Reset
+        
         void Reset() {
             if(!gInitialized) {
                 g_NPCModules = new Dictionary<string, INPCModule>();
-                Debug.Log("Creating NPCController");
+                Debug("Creating NPCController");
                 gMainAgent = false;
                 if (GetComponent<NPCBody>() != null) DestroyImmediate(GetComponent<NPCBody>());
                 if (GetComponent<NPCPerception>() != null) DestroyImmediate(GetComponent<NPCPerception>());
                 InitializeNPCComponents();
                 gInitialized = true;
             } else {
-                Debug.Log("Loading existing NPCController settings");
+                Debug("Loading existing NPCController settings");
             }
         }
 
         #endregion
 
         #region Private_Functions
-
+        
         private void InitializeNPCComponents() {
-            gAI = new NPCAI(this);
+            gAI = gameObject.AddComponent<NPCAI>();
             gPerception = gameObject.AddComponent<NPCPerception>();
             gBody = gameObject.AddComponent<NPCBody>();
             CreateSelectedEffect();
             // hide flags
+            gAI.hideFlags = HideFlags.HideInInspector;
             gBody.hideFlags = HideFlags.HideInInspector;
             gPerception.hideFlags = HideFlags.HideInInspector;
         }
@@ -169,7 +198,7 @@ namespace NPC {
                 mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 mr.material = m;
             } else {
-                Debug.Log("NPCController --> Couldn't load NPC materials, do not forget to add the to the Resources folder");
+                Debug("NPCController --> Couldn't load NPC materials, do not forget to add the to the Resources folder");
             }
         }
 

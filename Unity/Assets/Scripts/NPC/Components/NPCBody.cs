@@ -33,11 +33,14 @@ namespace NPC {
 
 
         #region Members
+        [SerializeField]
         NavMeshAgent gNavMeshAgent;
-        Rigidbody gRigidBody;
+        [SerializeField]
         Animator g_Animator;
-        CapsuleCollider gCapsuleCollider;
+        [SerializeField]
         NPCIKController gIKController;
+        Rigidbody gRigidBody;
+        CapsuleCollider gCapsuleCollider;
 
         private bool g_LookingAround = false;
         private Vector3 g_TargetLocation;
@@ -80,15 +83,27 @@ namespace NPC {
 
         [System.ComponentModel.DefaultValue(1f)]
         private float TurnRightAngle { get; set; }
+
+        private NPCController g_NPCController;
         #endregion
 
         #region Properties
 
-        public NAV_STATE Navigation;
         public bool Navigating;
+
+        [SerializeField]
+        public NAV_STATE Navigation;
+
+        [SerializeField]
         public bool UseCurves;
+
+        [SerializeField]
         public bool IKEnabled;
+
+        [SerializeField]
         public bool UseAnimatorController;
+
+        [SerializeField]
         public float NavDistanceThreshold   = 0.3f;
 
         public bool LookingAround {
@@ -122,8 +137,8 @@ namespace NPC {
 
         #region Unity_Methods
         void Reset() {
-
-            Debug.Log("Initializing NPCBody ... ");
+            g_NPCController = GetComponent<NPCController>();
+            g_NPCController.Debug("Initializing NPCBody ... ");
             gNavMeshAgent = gameObject.GetComponent<NavMeshAgent>();
             gRigidBody = gameObject.GetComponent<Rigidbody>();
             g_Animator = gameObject.GetComponent<Animator>();
@@ -133,10 +148,10 @@ namespace NPC {
                 gNavMeshAgent = gameObject.AddComponent<NavMeshAgent>();
                 gNavMeshAgent.autoBraking = true;
                 gNavMeshAgent.enabled = false;
-                Debug.Log("NPCBody requires a NavMeshAgent if navigation is on, adding a default one.");
+                g_NPCController.Debug("NPCBody requires a NavMeshAgent if navigation is on, adding a default one.");
             }
             if (g_Animator == null || g_Animator.runtimeAnimatorController == null) {
-                Debug.Log("NPCBody --> Agent requires an Animator Controller!!! - consider adding the NPCDefaultAnimatorController");
+                g_NPCController.Debug("NPCBody --> Agent requires an Animator Controller!!! - consider adding the NPCDefaultAnimatorController");
             } else UseAnimatorController = true;
             if(gRigidBody == null) {
                 gRigidBody = gameObject.AddComponent<Rigidbody>();
@@ -156,6 +171,7 @@ namespace NPC {
         }
 
         void Start() {
+            g_NPCController = GetComponent<NPCController>();
             g_Animator = gameObject.GetComponent<Animator>();
             gIKController = gameObject.GetComponent<NPCIKController>();
             gNavMeshAgent = gameObject.GetComponent<NavMeshAgent>();
@@ -175,7 +191,7 @@ namespace NPC {
                 
                 // If accidentally checked
                 if (g_Animator == null) {
-                    Debug.Log("NPCBody --> No Animator in agent, disabling UseAnimatorController");
+                    g_NPCController.Debug("NPCBody --> No Animator in agent, disabling UseAnimatorController");
                     UseAnimatorController = false;
                     return;
                 }
@@ -254,7 +270,7 @@ namespace NPC {
                     g_CurrentStateGnd = s;
                     break;
                 default:
-                    Debug.Log("NPCBody --> Invalid direction especified for ModifyMotion");
+                    g_NPCController.Debug("NPCBody --> Invalid direction especified for ModifyMotion");
                     break;
             }
         }

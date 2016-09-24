@@ -6,28 +6,9 @@ using Pathfinding;
 
 
 namespace NPC {
-
-    [System.Serializable]
-    public class NPCAI {
+    
+    public class NPCAI: MonoBehaviour {
         
-        public NPCAI(NPCController pController) {
-            this.gNPCController = pController;
-            gPathfinders = new Dictionary<string, IPathfinder>();
-            gPathfinders.Add("None", null);
-        }
-
-        #region Properties
-
-        public IPathfinder CurrentPathfinder;
-
-        public Dictionary<string,IPathfinder> Pathfinders {
-            get {
-                if (gPathfinders == null) InitPathfinders();
-                return gPathfinders;
-            }
-        }
-
-        #endregion
 
         #region NPC_Modules
         private NPCController gNPCController;
@@ -38,14 +19,42 @@ namespace NPC {
         #endregion
 
         #region Members
+        [SerializeField]
         private Dictionary<string, NPCAttribute> gAttributes;
 
         [SerializeField]
         private Dictionary<string, IPathfinder> gPathfinders;
         #endregion
 
-        #region Public_Functions
+        #region Properties
+        [SerializeField]
+        public string SelectedPathfinder = "None";
 
+        [SerializeField]
+        public IPathfinder CurrentPathfinder;
+        
+        public Dictionary<string,IPathfinder> Pathfinders {
+            get {
+                if (gPathfinders == null) InitPathfinders();
+                return gPathfinders;
+            }
+        }
+        #endregion
+
+        #region Unity_Methods
+        void Reset() {
+            this.gNPCController = gameObject.GetComponent<NPCController>();
+            gPathfinders = new Dictionary<string, IPathfinder>();
+            gPathfinders.Add("None", null);
+        }
+
+        void Start() {
+            gNPCController = GetComponent<NPCController>();
+            CurrentPathfinder = gPathfinders[SelectedPathfinder];
+        }
+        #endregion
+
+        #region Public_Functions
         public void SetNPCModule(INPCModule mod) {
             if (gPathfinders == null) InitPathfinders();
             switch(mod.NPCModuleType()) {
@@ -64,17 +73,18 @@ namespace NPC {
                 return CurrentPathfinder.FindPath(gNPCController.transform.position, target);
             }
         }
-
         #endregion
 
-        #region Traits
-
         #region Private_Functions
+
         private void InitPathfinders() {
             gPathfinders = new Dictionary<string, IPathfinder>();
             gPathfinders.Add("None", null);
         }
         #endregion
+
+        #region Traits
+
 
         /* For the purpose of initialization */
         private bool gRandomizeTraits;

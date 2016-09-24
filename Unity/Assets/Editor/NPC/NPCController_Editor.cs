@@ -22,6 +22,11 @@ namespace NPC {
         private const string label_NavStoppingThresh = "Breaking Threshold";
         private const string label_AIPathfind = "Pathfinder";
         private const string label_NPCLoadedMods = "Loaded NPC Modules";
+        private const string label_DebugPrint = "Debug Prints";
+
+        [SerializeField]
+        int selectedPathfinder;
+
         #endregion
 
         #region Insperctor_GUI
@@ -44,20 +49,11 @@ namespace NPC {
 
             EditorGUI.BeginChangeCheck();
 
-            
+            /* Load Modules */
             if (gController.GetComponent<INPCModule>() != null) {
                 gShowMods = EditorGUILayout.Foldout(gShowMods, "NPC Modules");
                 if (gShowMods) {
-                    INPCModule[] modules = gController.GetComponents<INPCModule>();
-                    foreach(INPCModule m in modules) {
-                        if (!gController.ContainsModule(m)) {
-                            Debug.Log("Loading NPC Module -> " + m.NPCModuleName());
-                            if(!gController.AddNPCModule(m)) {
-                                DestroyImmediate((Object) m);
-                            }
-                        }
-                    }
-                
+                    gController.LoadNPCModules();
                     INPCModule[] mods = gController.NPCModules;
                     foreach(INPCModule m in mods) {
                         EditorGUILayout.LabelField(m.NPCModuleName());
@@ -65,13 +61,15 @@ namespace NPC {
                 }
             } else EditorGUILayout.LabelField("No NPC Modules Loaded");
 
+            /* General Controller */
             gGeneralSettings = EditorGUILayout.Foldout(gGeneralSettings, "General Settings");
             if(gGeneralSettings) { 
                 gController.MainAgent = (bool)EditorGUILayout.Toggle(label_MainAgent, (bool)gController.MainAgent);
+                gController.DebugPrint = (bool)EditorGUILayout.Toggle(label_DebugPrint, (bool)gController.DebugPrint);
                 gController.DisplaySelectedHighlight = (bool)EditorGUILayout.Toggle(label_SelectHighlight, (bool)gController.DisplaySelectedHighlight);
             }
 
-            /* Perception Sliders */
+            /* Perception */
             gShowPerception = EditorGUILayout.Foldout(gShowPerception, "Perception") && gController.Perception != null;
             if(gShowPerception) {
                 gController.Perception.ViewAngle = (float) EditorGUILayout.IntSlider(label_ViewAngle, (int) gController.Perception.ViewAngle, 
@@ -82,24 +80,25 @@ namespace NPC {
                     (int) NPCPerception.MAX_PERCEPTION_FIELD);
             }
 
+            /* AI */
             gShowAI = EditorGUILayout.Foldout(gShowAI, "AI") && gController.AI != null;
-
             if(gShowAI) {
                 if(gController.AI.Pathfinders != null) {
                     string[] pfds = new string[gController.AI.Pathfinders.Count];
                     gController.AI.Pathfinders.Keys.CopyTo(pfds, 0);
-                    int selected = 0;
-                    if(gController.AI.CurrentPathfinder != null) {
-                        for (int i = 0; i < pfds.Length; ++i) { 
-                            if (pfds[i] == ((INPCModule)gController.AI.CurrentPathfinder).NPCModuleName())
-                                selected = i;
-                        }
+                    selectedPathfinder = 0;
+                    for (int i = 0; i < pfds.Length; ++i) { 
+                        if (pfds[i] == gController.AI.SelectedPathfinder)
+                            selectedPathfinder = i;
                     }
-                    selected = EditorGUILayout.Popup("Pathfinders", selected , pfds);
-                    gController.AI.CurrentPathfinder = gController.AI.Pathfinders[pfds[selected]];
+                    if (gController.AI.Pathfinders.ContainsKey(pfds[selectedPathfinder])) {
+                        selectedPathfinder = EditorGUILayout.Popup("Pathfinders", selectedPathfinder, pfds);
+                        gController.AI.SelectedPathfinder = pfds[selectedPathfinder];
+                    } else gController.AI.SelectedPathfinder = pfds[0];
                 }
             }
 
+            /* Body */
             gShowBody = EditorGUILayout.Foldout(gShowBody, "Body") && gController.Body != null;
             if(gShowBody) {
                 // gController.Body.SteeringNavigation = (bool)EditorGUILayout.Toggle(label_BodyNavigation, (bool)gController.Body.SteeringNavigation);

@@ -20,6 +20,8 @@ namespace NPC {
 
         void SetEnable(bool e);
 
+        void RemoveNPCModule();
+
         NPC_MODULE_TYPE NPCModuleType();
 
         NPC_MODULE_TARGET NPCModuleTarget();
