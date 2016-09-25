@@ -36,6 +36,7 @@ namespace Pathfinding {
         private float g_GridScale = 1.0f;
         public bool PaintGridOnScene = false;
         public bool PaintPathdOnPlay = false;
+        public bool DisplayTileText = false;
         public float GridTransparency = 1.0f;
         private float g_NodeRadius = 0.5f;
         public float BlockingHeight = 2.0f;
@@ -97,6 +98,8 @@ namespace Pathfinding {
             SelectedTile.y = Mathf.Clamp(SelectedTile.y, 0, g_Grid.GetLength(1) - 1);
             foreach (NavNode node in g_Grid) {
                 node.IsWalkable();
+                node.SetActiveTileText(DisplayTileText);
+                
             }
         }
 
@@ -172,7 +175,7 @@ namespace Pathfinding {
         #endregion
 
         #region Public_Functions
-
+        
         public void SetIPathfinderNode(IPathfinder ipf, NavNode node) {
             if(g_WalkedOnNodes.ContainsKey(ipf) && g_WalkedOnNodes[ipf] != node) {
                 if(Application.isPlaying) g_WalkedOnNodes[ipf].SetHighlightTile(false, Color.grey);

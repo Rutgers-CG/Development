@@ -61,6 +61,7 @@ namespace Pathfinding {
 
         #region Members
         private GameObject  g_Tile;
+        private GameObject  g_TileText;
         private NavGrid     g_Grid;
         private float       g_Radius;
         private Vector3     g_Position;
@@ -77,6 +78,7 @@ namespace Pathfinding {
             if(h) {
                 g_Tile = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 g_Tile.GetComponent<BoxCollider>().isTrigger = true;
+                CreateTileText();
                 Material m = new Material(Shader.Find("Standard"));
                 m.color = c;
                 g_Tile.GetComponent<Renderer>().material = m;
@@ -95,6 +97,13 @@ namespace Pathfinding {
         public override string ToString() {
             return "NavNode @ ["+g_Position+"]";
         }
+
+        public void SetActiveTileText(bool active) {
+            if (g_TileText != null)
+                g_TileText.SetActive(active);
+        }
+
+
 
         public bool IsWalkable() {
             if(g_Up != null) {
@@ -116,5 +125,24 @@ namespace Pathfinding {
             } else return true;
         }
         #endregion
+
+        #region Private_Functions
+        private void CreateTileText() {
+            g_TileText = new GameObject();
+            g_TileText.name = "TileText";
+            g_TileText.transform.Rotate(Up, 90f);
+            g_TileText.transform.Rotate(g_Tile.transform.right, 90f);
+            g_TileText.transform.localScale = new Vector3(Radius, Radius, Radius);
+            g_TileText.transform.localPosition = g_Tile.transform.position + (Up * 0.2f);
+            TextMesh tm = g_TileText.AddComponent<TextMesh>();
+            tm.color = Color.green;
+            tm.fontSize = 20;
+            tm.characterSize = 0.2f;
+            tm.anchor = TextAnchor.UpperCenter;
+            g_TileText.transform.parent = g_Tile.transform;
+            tm.text = "Tile Weight: " + Weight;
+        }
+        #endregion
+
     }
 }
