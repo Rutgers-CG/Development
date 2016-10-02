@@ -13,6 +13,9 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
 
     #region Members
     [SerializeField]
+    public bool CleanPathOnRestart = true;
+    
+    [SerializeField]
     public bool EnableNPCModule = true;
 
     [SerializeField]
@@ -27,19 +30,147 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
     [SerializeField]
     public bool WeightHeuristic = false;
 
+
+    [SerializeField]
+    public bool DynamicWeight = false;
+
     [SerializeField]
     public float HeuristicWeight = 1f;
 
+    [SerializeField]
+    public bool UseBeaconHeuristic = false;
+
+    [SerializeField]
+    public int BeaconFringeLimit = -1;
+
+    public bool BenchmarkAll = false;
+
+
+
     private NPCController g_NPCController;
     private Vector3 g_TargetLocation;
+    NavNode g_FromNode;
     HashSet<NavNode> g_ClosedList;
     HashSet<NavNode> g_OpenList;
     private SortedList<float,NavNode> g_Fringe;
     private NavGrid g_Grid;
-
+    public bool DryRunAlgo = false;
+    public int DryRunTests = 0;
+    private float g_CurrentPathValue = 0f;
+    private int g_PathLengthNodes;
     #endregion
 
     #region Public_Functions
+
+    public void DryRunAlgorithm() {
+        if(DryRunAlgo) {
+            RaycastHit hit;
+            List<Vector3> pathList = new List<Vector3>();
+            if (Physics.Raycast(new Ray(transform.position + (transform.up * 0.2f), -1 * transform.up), out hit)) {
+                g_Grid = hit.collider.GetComponent<NavGrid>();
+                int succeed = 0;
+                while(succeed < DryRunTests) {
+                    int x = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.x - 1)),
+                        y = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.y - 1));
+                    g_FromNode = g_Grid.GetGridNode(x, y);
+                    if (g_FromNode != null) {
+                        NavNode to = null;
+                        do {
+                            x = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.x - 1));
+                            y = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.x - 1));
+                            to = g_Grid.GetGridNode(x, y);
+                        } while (to == null);
+                        g_FromNode.SetHighlightTile(true, Color.black, 1f);
+                        FindPath(g_FromNode.Position, to.Position);
+                        succeed++;
+                    }
+                }
+            }
+            g_NPCController.Debug("Finished algorithm dry run");
+        }
+        DryRunAlgo = false;
+        g_FromNode = null;
+    }
+
+    public void Benchmark() {
+        if (BenchmarkAll) {
+            RaycastHit hit;
+            List<Vector3> pathList = new List<Vector3>();
+            if (Physics.Raycast(new Ray(transform.position + (transform.up * 0.2f), -1 * transform.up), out hit)) {
+                g_Grid = hit.collider.GetComponent<NavGrid>();
+                int succeed = 0;
+                while (succeed < DryRunTests) {
+                    int x = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.x - 1)),
+                        y = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.y - 1));
+                    g_FromNode = g_Grid.GetGridNode(x, y);
+                    if (g_FromNode != null) {
+                        NavNode to = null;
+
+                        do {
+                            x = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.x - 1));
+                            y = Mathf.RoundToInt(UnityEngine.Random.Range(0, g_Grid.GridDimensions.x - 1));
+                            to = g_Grid.GetGridNode(x, y);
+                        } while (to == null);
+
+                        NavNode from = g_FromNode;
+
+                        // benchmark each path
+                        for (int i = 0; i < 5; ++i) {
+
+                            string log = "";
+
+                            if (i == 0) {
+                                UseHeuristic = false;
+                                log += "Uniform Cost Search: \n";
+                                DynamicWeight = false;
+                                UseHeuristic = false;
+                            } else if (i == 1) {
+                                log += "A*: \n";
+                                UseHeuristic = true;
+                                WeightHeuristic = false;
+                            } else if (i == 2) {
+                                log += "Heavy Weighted A*: \n";
+                                UseHeuristic = true;
+                                WeightHeuristic = true;
+                                HeuristicWeight = 5.0f;
+                            } else if (i == 3) {
+                                log += "Dynamic Weight A*: \n";
+                                UseHeuristic = true;
+                                WeightHeuristic = true;
+                                HeuristicWeight = 1.0f;
+                                DynamicWeight = true;
+                            } else {
+                                log += "Weighted Beam Heuristic: \n";
+                                BeaconFringeLimit = 15;
+                                UseBeaconHeuristic = true;
+                                UseHeuristic = true;
+                                WeightHeuristic = true;
+                                HeuristicWeight = 1.0f;
+                                DynamicWeight = false;
+                            }
+                            
+                            float now = Time.realtimeSinceStartup;
+                            from.SetHighlightTile(true, Color.black, 1f);
+                            FindPath(from.Position, to.Position);
+                            log += "Time: " + (Time.realtimeSinceStartup - now) + "ms \n";
+                            log += "Expanded: " + g_Fringe.Count + 1 + "\n";
+                            log += "Generated: " + g_ClosedList.Count + "\n";
+                            log += "Path Value: " + g_CurrentPathValue + "\n";
+                            log += "Path Length: " + g_PathLengthNodes;
+                            g_NPCController.Debug(log);
+                            g_CurrentPathValue = 0f;
+                            g_PathLengthNodes = 0;
+                        }
+                        succeed++;
+                    }
+                    
+                }
+            }
+            g_NPCController.Debug("Finished algorithm dry run");
+        }
+        DryRunAlgo = false;
+        g_FromNode = null;
+    }
 
     // f(n) = g(n) + h(n)*e
     public float ComputeNodeCost(NavNode from, NavNode to, GRID_DIRECTION dir) {
@@ -110,12 +241,14 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
         pathToPrint.Insert(0, goal);
         bool done = false;
         NavNode curr = goal;
+        g_PathLengthNodes++;
         while (!done) {
             if (curr == parents[curr]) done = true;
             curr.SetHighlightTile(true, curr == goal ? Color.green : Color.yellow, 0.8f);
             curr = parents[curr];
             path.Insert(0, curr.Position);
             pathToPrint.Insert(0, curr);
+            g_PathLengthNodes++;
         }
         if(g_Grid != null) g_Grid.WritePathToFile(pathToPrint);
         return path;
@@ -127,8 +260,8 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
         List<Vector3> pathList = new List<Vector3>();
         if (Physics.Raycast(new Ray(transform.position + (transform.up * 0.2f), -1 * transform.up), out hit)) {
             g_Grid = hit.collider.GetComponent<NavGrid>();
-            NavNode fromNode = g_Grid.GetOccupiedNode(this);
-            if(fromNode == null) {
+            g_FromNode = g_FromNode == null ? g_Grid.GetOccupiedNode(this) : g_FromNode;
+            if(g_FromNode == null) {
                 Debug.Log("NavAStar --> Agent is currently navigating in between nodes, try again please");
                 return pathList;
             }
@@ -142,14 +275,17 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
             Dictionary<NavNode, NavNode> parents = new Dictionary<NavNode, NavNode>();
             
             g_Fringe = new SortedList<float, NavNode>(new DuplicateKeyComparer<float>());
-            parents.Add(fromNode, fromNode);
-            gVal.Add(fromNode, 0f);
-            fVal.Add(fromNode,ComputeNodeHeuristic(fromNode));
-            g_Fringe.Add(fVal[fromNode], fromNode);
-            g_OpenList.Add(fromNode);
-            g_ClosedList.Add(fromNode);
+            parents.Add(g_FromNode, g_FromNode);
+            gVal.Add(g_FromNode, 0f);
+            fVal.Add(g_FromNode,ComputeNodeHeuristic(g_FromNode));
+            g_Fringe.Add(fVal[g_FromNode], g_FromNode);
+            g_OpenList.Add(g_FromNode);
+            g_ClosedList.Add(g_FromNode);
 
             while (g_OpenList.Count > 0) {
+
+                // Dynamically change the heuristic
+                if (DynamicWeight) HeuristicWeight += 0.2f;
 
                 // get next best node
                 NavNode n = g_Fringe.Values[0];
@@ -162,7 +298,8 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
                     n.SetHighlightTile(true, Color.green, 1f);
                     goalNode = n;
                     pathList = ConstructPath(goalNode, parents);
-                    return pathList;
+                    g_CurrentPathValue = fVal[n];
+                    goto exit_pathfinding;
                 }
 
                 // loop adjacent
@@ -179,8 +316,17 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
                             g_Fringe.Add(fVal[neighbor], neighbor);
                             neighbor.DisplayWeight = fVal[neighbor].ToString();
                             neighbor.SetHighlightTile(true, Color.white, 0.4f);
+                            if(UseBeaconHeuristic && g_Fringe.Count > BeaconFringeLimit) {
+                                NavNode last = g_Fringe.Values[g_Fringe.Count - 1];
+                                gVal.Remove(last);
+                                fVal.Remove(last);
+                                parents.Remove(last);
+                                g_OpenList.Remove(last);
+                                g_Fringe.RemoveAt(g_Fringe.Count-1);
+                            }
                         }
                         if (val < gVal[n]) {
+                            if (parents.ContainsKey(neighbor)) parents.Remove(neighbor);
                             parents.Add(neighbor, n);
                         }
                     }
@@ -189,15 +335,20 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
         } else {
             g_NPCController.Debug("NavAStar --> Pathfinder not on grid");    
         }
+    exit_pathfinding:
+        if (DynamicWeight) HeuristicWeight = 1.0f;
+        g_FromNode = null;
         return pathList;
     }
 
     public void ClearPath() {
-        foreach (NavNode n in g_ClosedList) {
-            n.SetHighlightTile(false, Color.black, 0f);
-        }
-        foreach (NavNode n in g_OpenList) {
-            n.SetHighlightTile(false, Color.black, 0f);
+        if(CleanPathOnRestart) {
+            foreach (NavNode n in g_ClosedList) {
+                n.SetHighlightTile(false, Color.black, 0f);
+            }
+            foreach (NavNode n in g_OpenList) {
+                n.SetHighlightTile(false, Color.black, 0f);
+            }
         }
     }
 
@@ -241,6 +392,11 @@ public class NavAStar : MonoBehaviour, IPathfinder, INPCModule {
         g_Fringe = new SortedList<float, NavNode>(new DuplicateKeyComparer<float>());
         g_ClosedList = new HashSet<NavNode>();
         g_OpenList = new HashSet<NavNode>();
+        if(DryRunAlgo) {    
+            DryRunAlgorithm();
+        } else if (BenchmarkAll) {
+            Benchmark();
+        }
     }
 
     void Update() {
