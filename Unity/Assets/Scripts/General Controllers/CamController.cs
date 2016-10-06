@@ -3,7 +3,8 @@ using System.Collections;
 
 public enum CAMERA_MODE {
     FREE_FLIGHT,
-    THIRD_PERSON
+    THIRD_PERSON,
+    ISOMETRIC
 }
 
 public class CamController : MonoBehaviour {
@@ -22,29 +23,37 @@ public class CamController : MonoBehaviour {
 
     #region Properties
     [SerializeField]
+    public bool EnableController = true;
+
+    [SerializeField]
     public float CameraSpeed;
 
     [SerializeField]
     public float RotationSpeed;
 
     [SerializeField]
+    public float ZoomSpeed = 10f;
+
+    [SerializeField]
     public CAMERA_MODE CameraMode;
     #endregion
 
     #region Members
-
     Vector3 g_TargetOffset;
     Transform g_Target;
     Vector3 g_LastMousePosition;
+    bool g_DraggingEvent = false;
     #endregion
 
     #region Unity_Functions
     // Handle IO
     void FixedUpdate() {
-        switch(CameraMode) {
-            case CAMERA_MODE.FREE_FLIGHT:
-                HandleFreeFlight();
-                break;
+        if(EnableController) {
+            switch(CameraMode) {
+                case CAMERA_MODE.FREE_FLIGHT:
+                    HandleFreeFlight();
+                    break;
+            }
         }
     }
 
@@ -80,14 +89,17 @@ public class CamController : MonoBehaviour {
         if (Input.GetKey((KeyCode)CAMERA_CONTROLS.LOOK_AROUND_DRAG)) {
             var diff = g_LastMousePosition - Input.mousePosition;
             if(diff != Vector3.zero) {
+                g_DraggingEvent = true;
                 transform.Rotate(transform.right, diff.y * Time.deltaTime * RotationSpeed, Space.World);
                 transform.Rotate(Vector3.up, -1 * diff.x * Time.deltaTime * RotationSpeed, Space.World);
             }
+        } else {
+            g_DraggingEvent = false;
         }
 
         if (zoomDelta != 0f) {
             Vector3 targetPos = transform.position + Vector3.up * -1 * zoomDelta;
-            transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * mod);
+            transform.position = Vector3.Lerp(transform.position, targetPos, Time.deltaTime * ZoomSpeed);
         }
 
     }
