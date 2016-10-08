@@ -24,6 +24,7 @@ namespace NPC {
         private const string label_NPCLoadedMods = "Loaded NPC Modules";
         private const string label_DebugPrint = "Debug Mode";
         private const string label_NavMeshAgentPathfinding = "Use NavMeshAgent";
+        private const string label_UseSocialForces = "Use Social Forces";
 
         [SerializeField]
         int selectedPathfinder;
@@ -121,6 +122,7 @@ namespace NPC {
                 gController.Body.IKEnabled = (bool)EditorGUILayout.Toggle(label_IKEnabled, (bool)gController.Body.IKEnabled);
                 gController.Body.UseAnimatorController = (bool)EditorGUILayout.Toggle(label_AnimatorEnabled, (bool)gController.Body.UseAnimatorController);
                 gController.Body.UseCurves = (bool)EditorGUILayout.Toggle(label_UseAnimCurves, (bool)gController.Body.UseCurves);
+                gController.Body.EnableSocialForces = (bool)EditorGUILayout.Toggle(label_UseSocialForces, (bool)gController.Body.EnableSocialForces);
             }
 
             if (EditorGUI.EndChangeCheck()) {

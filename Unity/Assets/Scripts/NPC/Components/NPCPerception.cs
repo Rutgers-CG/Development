@@ -8,7 +8,9 @@ namespace NPC {
     public class NPCPerception : MonoBehaviour {
 
         #region Members
+        [SerializeField]
         NPCController g_Controller;
+        [SerializeField]
         Transform g_Head;
         private static string PERCEPTION_LAYER = "Ignore Raycast";
         private static string PERCEPTION_FIELD_OBJECT = "PerpcetionField";
@@ -60,6 +62,7 @@ namespace NPC {
 
         #region Unity_Methods
         void Reset() {
+            g_Controller = GetComponent<NPCController>();
             g_Controller.Debug("Initializing NPCPerception...");
             // add perception fields
             g_Controller = gameObject.GetComponent<NPCController>();

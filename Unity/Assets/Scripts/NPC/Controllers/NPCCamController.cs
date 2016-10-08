@@ -196,7 +196,7 @@ namespace NPC {
         }
 
         private void HandleIsometricCamera() {
-            float speedModifier = Input.GetKey(KeyCode.LeftShift) ? Speed * ModMultiplier : 1f;
+            float speedModifier = Input.GetKey(KeyCode.LeftShift) ? Speed * ModMultiplier : Speed * 1f;
             if (Input.GetKey(KeyCode.W)) {
                 transform.position += Vector3.right * (Time.deltaTime * speedModifier);
             } else if (Input.GetKey(KeyCode.S)) {

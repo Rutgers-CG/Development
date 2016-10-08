@@ -89,6 +89,21 @@ namespace NPC {
 
         #region Properties
 
+        [SerializeField]
+        public bool EnableSocialForces;
+
+        public float AgentRadius {
+            get {
+                return gCapsuleCollider.radius;
+            }
+        }
+
+        public float Velocity {
+            get {
+                return g_CurrentSpeed;
+            }
+        }
+
         public bool Navigating;
 
         [SerializeField]
@@ -346,7 +361,11 @@ namespace NPC {
         private void HandleSteering() {
             g_TargetLocation = g_NavQueue[0];
             float distance = Vector3.Distance(transform.position, g_TargetLocation);
+            // desired goal
             Vector3 targetDirection = g_TargetLocation - transform.position;
+            if(EnableSocialForces) {
+                ComputeSocialForces(ref targetDirection);
+            }
             float angle = Vector3.Angle(targetDirection, transform.forward);
             LOCO_STATE d = Direction(targetDirection) < 1.0f ? LOCO_STATE.LEFT : LOCO_STATE.RIGHT;
             g_Navigating = distance > NavDistanceThreshold;
@@ -377,8 +396,11 @@ namespace NPC {
             g_CurrentStateGnd = LOCO_STATE.GROUND;
             g_CurrentStateDir = LOCO_STATE.FRONT;
             g_CurrentStateMod = LOCO_STATE.WALK;
-    }
+        }
 
+        private void ComputeSocialForces(ref Vector3 currentTarget) {
+            currentTarget = Vector3.Normalize(currentTarget);
+        }
         #endregion
     }
 

@@ -214,6 +214,39 @@ namespace NPC {
         public Transform GetTransform() {
             return this.transform;
         }
+
+        public Vector3 CalculateAgentRepulsionForce(IPerceivable p) {
+            return Vector3.zero;
+        }
+
+        public Vector3 CalculateAgentSlidingForce(IPerceivable p) {
+            return Vector3.zero;
+        }
+
+        public Vector3 CalculateRepulsionForce(IPerceivable p) {
+            return Vector3.zero;
+        }
+
+        public Vector3 CalculateSlidingForce(IPerceivable p) {
+            return Vector3.zero;
+        }
+
+        public float GetCurrentVelocity() {
+            return gBody.Velocity;
+        }
+
+        public Vector3 GetPosition() {
+            return transform.position;
+        }
+
+        public Vector3 GetForwardDirection() {
+            return transform.forward;
+        }
+
+        public float GetAgentRadius() {
+            return gBody.AgentRadius;
+        }
+
         #endregion
 
     }
