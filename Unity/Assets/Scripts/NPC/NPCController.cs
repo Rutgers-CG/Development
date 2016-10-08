@@ -41,7 +41,7 @@ namespace NPC {
         #region Properties
 
         [SerializeField]
-        public bool DebugPrint = true;
+        public bool DebugMode = true;
 
         public INPCModule[] NPCModules {
             get {
@@ -77,7 +77,7 @@ namespace NPC {
         #region Public_Functions
 
         public  void Debug(string msg) {
-            if(DebugPrint) {
+            if(DebugMode) {
                 UnityEngine.Debug.Log(msg);
             }
         }
@@ -209,6 +209,10 @@ namespace NPC {
         #region IPerceivable
         PERCEIVE_WEIGHT IPerceivable.GetPerceptionWeightType() {
             return PERCEIVE_WEIGHT.WEIGHTED;
+        }
+
+        public Transform GetTransform() {
+            return this.transform;
         }
         #endregion
 

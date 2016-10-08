@@ -10,6 +10,10 @@ public class GeoSpinner : MonoBehaviour, IPerceivable {
         return PERCEIVE_WEIGHT.WEIGHTED;
     }
 
+    public Transform GetTransform() {
+        throw new NotImplementedException();
+    }
+
     // Use this for initialization
     void Start () {
 	

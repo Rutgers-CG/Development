@@ -22,7 +22,7 @@ namespace NPC {
         private const string label_NavStoppingThresh = "Breaking Threshold";
         private const string label_AIPathfind = "Pathfinder";
         private const string label_NPCLoadedMods = "Loaded NPC Modules";
-        private const string label_DebugPrint = "Debug Prints";
+        private const string label_DebugPrint = "Debug Mode";
         private const string label_NavMeshAgentPathfinding = "Use NavMeshAgent";
 
         [SerializeField]
@@ -66,7 +66,7 @@ namespace NPC {
             gGeneralSettings = EditorGUILayout.Foldout(gGeneralSettings, "General Settings");
             if(gGeneralSettings) { 
                 gController.MainAgent = (bool)EditorGUILayout.Toggle(label_MainAgent, (bool)gController.MainAgent);
-                gController.DebugPrint = (bool)EditorGUILayout.Toggle(label_DebugPrint, (bool)gController.DebugPrint);
+                gController.DebugMode = (bool)EditorGUILayout.Toggle(label_DebugPrint, (bool)gController.DebugMode);
                 gController.DisplaySelectedHighlight = (bool)EditorGUILayout.Toggle(label_SelectHighlight, (bool)gController.DisplaySelectedHighlight);
             }
 
@@ -137,9 +137,9 @@ namespace NPC {
                     /* Draw View Angle */
                     float angleSplit = gController.Perception.ViewAngle / 2;
                     Debug.DrawRay(t.position,
-                        Quaternion.AngleAxis(angleSplit, Vector3.up) * t.rotation * Vector3.forward * gController.Perception.PerceptionRadius, Color.red);
+                        Quaternion.AngleAxis(angleSplit, Vector3.up) * t.rotation * Vector3.forward * gController.Perception.PerceptionRadius * t.lossyScale.z, Color.red);
                     Debug.DrawRay(t.position, 
-                        Quaternion.AngleAxis((-1) * angleSplit, Vector3.up) * t.rotation * Vector3.forward * gController.Perception.PerceptionRadius, Color.red);
+                        Quaternion.AngleAxis((-1) * angleSplit, Vector3.up) * t.rotation * Vector3.forward * gController.Perception.PerceptionRadius * t.lossyScale.z, Color.red);
                 }
             }
         }

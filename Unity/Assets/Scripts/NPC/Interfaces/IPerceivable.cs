@@ -3,6 +3,11 @@ using System.Collections;
 
 namespace NPC {
 
+    public enum NPC_PERCEIVABLE_TYPE {
+        NPC,
+        OBJECT
+    }
+
     public enum PERCEIVE_WEIGHT {
         NONE,
         WEIGHTED,
@@ -11,6 +16,7 @@ namespace NPC {
 
     public interface IPerceivable {
         PERCEIVE_WEIGHT GetPerceptionWeightType();
+        Transform GetTransform();
     }
 
 }
