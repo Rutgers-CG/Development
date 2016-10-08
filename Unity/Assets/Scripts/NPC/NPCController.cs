@@ -6,7 +6,7 @@ using System.Collections.Generic;
 namespace NPC {
 
     public class NPCController : MonoBehaviour, IPerceivable {
-        
+
         #region Members
 
         [SerializeField]
@@ -40,9 +40,21 @@ namespace NPC {
 
         #region Properties
 
+        public HashSet<IPerceivable> PerceivedEntities {
+            get {
+                return gPerception.PerceivedEntities;
+            }
+        }
+
+        public HashSet<IPerceivable> PerceivedAgents {
+            get {
+                return gPerception.PerceivedAgents;
+            }
+        }
+
         [SerializeField]
         public bool DebugMode = true;
-
+        
         public INPCModule[] NPCModules {
             get {
                 if (g_NPCModules == null) return new INPCModule[0];
@@ -51,6 +63,9 @@ namespace NPC {
                 return mods;
             }
         }
+
+        [SerializeField]
+        public PERCEIVEABLE_TYPE EntityType;
 
         [SerializeField]
         public NPCPerception Perception {
@@ -79,6 +94,12 @@ namespace NPC {
         public  void Debug(string msg) {
             if(DebugMode) {
                 UnityEngine.Debug.Log(msg);
+            }
+        }
+
+        public void DebugLine(Vector3 from, Vector3 to, Color c) {
+            if (DebugMode) {
+                UnityEngine.Debug.DrawLine(from, to, c);
             }
         }
 
@@ -231,7 +252,7 @@ namespace NPC {
             return Vector3.zero;
         }
 
-        public float GetCurrentVelocity() {
+        public Vector3 GetCurrentVelocity() {
             return gBody.Velocity;
         }
 
@@ -245,6 +266,10 @@ namespace NPC {
 
         public float GetAgentRadius() {
             return gBody.AgentRadius;
+        }
+
+        public PERCEIVEABLE_TYPE GetNPCEntityType() {
+            return EntityType;
         }
 
         #endregion

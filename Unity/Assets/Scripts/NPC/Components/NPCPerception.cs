@@ -34,10 +34,11 @@ namespace NPC {
         private float gViewAngle = 135f;
         
         private HashSet<IPerceivable> g_PerceivedObjects;
+        private HashSet<IPerceivable> g_PerceivedNPCAgents;
         #endregion
 
         #region Properties
-    
+
         public float ViewAngle {
             get { return this.gViewAngle; }
             set { this.gViewAngle = value; }
@@ -57,6 +58,18 @@ namespace NPC {
 
         public bool Perceiving {
             get { return g_Perceiving; }
+        }
+
+        public HashSet<IPerceivable> PerceivedEntities {
+            get {
+                return g_PerceivedObjects;
+            }
+        }
+
+        public HashSet<IPerceivable> PerceivedAgents {
+            get {
+                return g_PerceivedNPCAgents;
+            }
         }
         #endregion
 
@@ -92,6 +105,7 @@ namespace NPC {
             g_Perceiving = false;
             g_CurrentlyPerceivedTarget = null;
             g_PerceivedObjects = new HashSet<IPerceivable>();
+            g_PerceivedNPCAgents = new HashSet<IPerceivable>();
             g_HalfViewAngle = ViewAngle / 2.0f;
         }
 
@@ -102,6 +116,7 @@ namespace NPC {
                 float angle = Vector3.Angle(transform.forward, diff);
                 if(!g_PerceivedObjects.Contains(p) && angle <= g_HalfViewAngle) {        
                     g_Controller.Debug("I see an " + p);
+                    if (p.GetNPCEntityType() == PERCEIVEABLE_TYPE.NPC) g_PerceivedNPCAgents.Add(p);
                     g_PerceivedObjects.Add(p);
                 } else if (angle >= g_HalfViewAngle) {
                     g_Controller.Debug("I can't see the " + p + " no more");
@@ -115,6 +130,7 @@ namespace NPC {
             if (p != null && g_PerceivedObjects.Contains(p)) {
                 g_Controller.Debug(p + " is not in perception range anymore");
                 g_PerceivedObjects.Remove(p);
+                if (p.GetNPCEntityType() == PERCEIVEABLE_TYPE.NPC) g_PerceivedNPCAgents.Remove(p);
             }
         }
 

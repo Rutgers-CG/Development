@@ -9,7 +9,7 @@ public class GeoSpinner : MonoBehaviour, IPerceivable {
         throw new NotImplementedException();
     }
 
-    public float GetCurrentVelocity() {
+    public Vector3 GetCurrentVelocity() {
         throw new NotImplementedException();
     }
 
@@ -54,4 +54,8 @@ public class GeoSpinner : MonoBehaviour, IPerceivable {
 	void Update () {
         transform.RotateAround(transform.position, transform.up, 1f);
 	}
+
+    public PERCEIVEABLE_TYPE GetNPCEntityType() {
+        return PERCEIVEABLE_TYPE.OBJECT;
+    }
 }

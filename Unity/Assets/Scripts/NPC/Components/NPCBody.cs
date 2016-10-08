@@ -44,6 +44,7 @@ namespace NPC {
 
         private bool g_LookingAround = false;
         private Vector3 g_TargetLocation;
+        private Vector3 g_LastpdatedPosition;
 
         private static string g_AnimParamSpeed      = "Speed";
         private static string g_AnimParamDirection  = "Direction";
@@ -89,6 +90,15 @@ namespace NPC {
 
         #region Properties
 
+        public float AgentRepulsionWeight = 0.6f;
+        public float DistanceTolerance  = 2f;
+
+        public float Mass {
+            get {
+                return gRigidBody.mass;
+            }
+        }
+
         [SerializeField]
         public bool EnableSocialForces;
 
@@ -98,7 +108,13 @@ namespace NPC {
             }
         }
 
-        public float Velocity {
+        public Vector3 Velocity {
+            get {
+                return (transform.position - g_LastpdatedPosition) * Time.deltaTime;
+            }
+        }
+
+        public float Speed {
             get {
                 return g_CurrentSpeed;
             }
@@ -190,6 +206,8 @@ namespace NPC {
             g_Animator = gameObject.GetComponent<Animator>();
             gIKController = gameObject.GetComponent<NPCIKController>();
             gNavMeshAgent = gameObject.GetComponent<NavMeshAgent>();
+            gCapsuleCollider = gameObject.GetComponent<CapsuleCollider>();
+            gRigidBody = GetComponent<Rigidbody>();
             if (g_Animator == null || gNavMeshAgent == null) UseAnimatorController = false;
             if (gIKController == null) IKEnabled = false;
             g_NavQueue = new List<Vector3>();
@@ -200,9 +218,11 @@ namespace NPC {
         #region Public_Funtions
         public void UpdateBody() {
             
-            UpdateNavigation();    
+            UpdateNavigation();
 
-            if(UseAnimatorController) {
+            g_LastpdatedPosition = transform.position;
+
+            if (UseAnimatorController) {
                 
                 // If accidentally checked
                 if (g_Animator == null) {
@@ -370,7 +390,7 @@ namespace NPC {
             LOCO_STATE d = Direction(targetDirection) < 1.0f ? LOCO_STATE.LEFT : LOCO_STATE.RIGHT;
             g_Navigating = distance > NavDistanceThreshold;
             if (g_Navigating) {
-                if (angle > 25.0f
+                if (angle > 45.0f
                     && g_CurrentStateFwd != LOCO_STATE.FORWARD) {
                     Move(d);
                 } else {
@@ -400,7 +420,26 @@ namespace NPC {
 
         private void ComputeSocialForces(ref Vector3 currentTarget) {
             currentTarget = Vector3.Normalize(currentTarget);
+            Vector3 preferredForce = Mass * ((currentTarget * g_CurrentSpeed) - Velocity) * Time.deltaTime;
+            Vector3 repulsionForce = ComputeAgentsRepulsionForce();
+            currentTarget += preferredForce + repulsionForce;
         }
+
+        private Vector3 ComputeAgentsRepulsionForce() {
+            Vector3 totalForces = Vector3.zero;
+            foreach(IPerceivable p in g_NPCController.Perception.PerceivedAgents) {
+                float radii = AgentRadius + p.GetAgentRadius();
+                float distance = Vector3.Distance(transform.position, p.GetPosition());
+                // no collision --> skip
+                if (distance >= (radii * DistanceTolerance))  continue;
+                Vector3 normal = Vector3.Normalize(transform.position - p.GetPosition());
+                // go back and right by default
+                totalForces += normal * AgentRepulsionWeight;
+                totalForces += Vector3.Cross(Vector3.up, normal) * AgentRepulsionWeight;
+            }
+            return totalForces;
+        }
+
         #endregion
     }
 

@@ -25,6 +25,8 @@ namespace NPC {
         private const string label_DebugPrint = "Debug Mode";
         private const string label_NavMeshAgentPathfinding = "Use NavMeshAgent";
         private const string label_UseSocialForces = "Use Social Forces";
+        private const string label_AgentRepulsionWeight = "Agents Repulsion Weight";
+        private const string label_AgentRepulsionDistanceTolerance = "Agents Distance Tolerance";
 
         [SerializeField]
         int selectedPathfinder;
@@ -74,6 +76,7 @@ namespace NPC {
             /* Perception */
             gShowPerception = EditorGUILayout.Foldout(gShowPerception, "Perception") && gController.Perception != null;
             if(gShowPerception) {
+                gController.EntityType = (PERCEIVEABLE_TYPE)EditorGUILayout.EnumPopup("NPC Type", (PERCEIVEABLE_TYPE)gController.EntityType);
                 gController.Perception.ViewAngle = (float) EditorGUILayout.IntSlider(label_ViewAngle, (int) gController.Perception.ViewAngle, 
                     (int) NPCPerception.MIN_VIEW_ANGLE, 
                     (int) NPCPerception.MAX_VIEW_ANGLE);
@@ -123,6 +126,10 @@ namespace NPC {
                 gController.Body.UseAnimatorController = (bool)EditorGUILayout.Toggle(label_AnimatorEnabled, (bool)gController.Body.UseAnimatorController);
                 gController.Body.UseCurves = (bool)EditorGUILayout.Toggle(label_UseAnimCurves, (bool)gController.Body.UseCurves);
                 gController.Body.EnableSocialForces = (bool)EditorGUILayout.Toggle(label_UseSocialForces, (bool)gController.Body.EnableSocialForces);
+                if(gController.Body.EnableSocialForces) {
+                    gController.Body.AgentRepulsionWeight = (float)EditorGUILayout.FloatField(label_AgentRepulsionWeight, (float) gController.Body.AgentRepulsionWeight);
+                    gController.Body.DistanceTolerance = (float)EditorGUILayout.FloatField(label_AgentRepulsionDistanceTolerance, (float)gController.Body.DistanceTolerance);
+                }
             }
 
             if (EditorGUI.EndChangeCheck()) {
