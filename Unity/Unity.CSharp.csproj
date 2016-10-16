@@ -77,13 +77,13 @@
     <Compile Include="Assets\Scripts\Curves\ICurve.cs" />
     <Compile Include="Assets\Scripts\Curves\Line.cs" />
     <Compile Include="Assets\Scripts\Curves\QuadBezierCurve.cs" />
-    <Compile Include="Assets\Scripts\General Controllers\CamController.cs" />
     <Compile Include="Assets\Scripts\Misc\GeoSpinner.cs" />
     <Compile Include="Assets\Scripts\NPC\Components\NPCAI.cs" />
     <Compile Include="Assets\Scripts\NPC\Components\NPCAttributes.cs" />
     <Compile Include="Assets\Scripts\NPC\Components\NPCBody.cs" />
     <Compile Include="Assets\Scripts\NPC\Components\NPCGoal.cs" />
     <Compile Include="Assets\Scripts\NPC\Components\NPCIKController.cs" />
+    <Compile Include="Assets\Scripts\NPC\Components\NPCObstacle.cs" />
     <Compile Include="Assets\Scripts\NPC\Components\NPCPerception.cs" />
     <Compile Include="Assets\Scripts\NPC\Controllers\NPCCamController.cs" />
     <Compile Include="Assets\Scripts\NPC\Controllers\NPCIO.cs" />
@@ -92,7 +92,9 @@
     <Compile Include="Assets\Scripts\NPC\Interfaces\IPerceivable.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCControlManager.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCController.cs" />
-    <Compile Include="Assets\Scripts\Pathfinding\A-star\NavAStar.cs" />
+    <Compile Include="Assets\Scripts\Pathfinding\NavAlgorithms\NavAStar.cs" />
+    <Compile Include="Assets\Scripts\Pathfinding\NavAlgorithms\NavIncAStar.cs" />
+    <Compile Include="Assets\Scripts\Pathfinding\NavAlgorithms\NavSeqAStar.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\NavGrid\Grid.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\NavGrid\NavGrid.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\NavGrid\NavNode.cs" />

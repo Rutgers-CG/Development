@@ -27,6 +27,7 @@ namespace NPC {
         private const string label_UseSocialForces = "Use Social Forces";
         private const string label_AgentRepulsionWeight = "Agents Repulsion Weight";
         private const string label_AgentRepulsionDistanceTolerance = "Agents Distance Tolerance";
+        private const string label_TestNPC = "Test NPC";
 
         [SerializeField]
         int selectedPathfinder;
@@ -71,6 +72,10 @@ namespace NPC {
                 gController.MainAgent = (bool)EditorGUILayout.Toggle(label_MainAgent, (bool)gController.MainAgent);
                 gController.DebugMode = (bool)EditorGUILayout.Toggle(label_DebugPrint, (bool)gController.DebugMode);
                 gController.DisplaySelectedHighlight = (bool)EditorGUILayout.Toggle(label_SelectHighlight, (bool)gController.DisplaySelectedHighlight);
+                gController.TestNPC = (bool)EditorGUILayout.Toggle(label_TestNPC, (bool)gController.TestNPC);
+                if (gController.TestNPC) {
+                    gController.TestTargetLocation = (Transform)EditorGUILayout.ObjectField("Test Target Location", (Transform)gController.TestTargetLocation, typeof(Transform), true);
+                } else gController.TestTargetLocation = null;
             }
 
             /* Perception */

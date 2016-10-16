@@ -2,8 +2,24 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using NPC;
 
 namespace SupportUtils {
+
+    public class NPCUtils {
+        public static Vector3 CalculateObjectNormal(IPerceivable object1, IPerceivable object2) {
+            Vector3 basicNormal = object2.GetPosition() - object1.GetPosition();
+            if(Mathf.Abs(basicNormal.x) > Mathf.Abs(basicNormal.z)){
+                // west or east
+                return object2.GetPosition().x - object1.GetPosition().x <= 0 ?
+                    new Vector3(1f, 0f, 0f) : new Vector3(-1f, 0f, 0f);
+            } else {
+                // north or south
+                return object2.GetPosition().z - object1.GetPosition().z <= 0 ?
+                    new Vector3(1f, 0f, -1f) : new Vector3(0f, 0f, 1f);
+            }
+        }
+    }
 
     /// <summary>
     /// Comparer for comparing two keys, handling equality as beeing greater

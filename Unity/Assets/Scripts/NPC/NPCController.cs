@@ -40,6 +40,12 @@ namespace NPC {
 
         #region Properties
 
+        [SerializeField]
+        public bool TestNPC;
+
+        [SerializeField]
+        public Transform TestTargetLocation;
+
         public HashSet<IPerceivable> PerceivedEntities {
             get {
                 return gPerception.PerceivedEntities;

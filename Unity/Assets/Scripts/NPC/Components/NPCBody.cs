@@ -91,7 +91,7 @@ namespace NPC {
         #region Properties
 
         public float AgentRepulsionWeight = 0.6f;
-        public float DistanceTolerance  = 2f;
+        public float DistanceTolerance  = 1f;
 
         public float Mass {
             get {
@@ -211,6 +211,9 @@ namespace NPC {
             if (g_Animator == null || gNavMeshAgent == null) UseAnimatorController = false;
             if (gIKController == null) IKEnabled = false;
             g_NavQueue = new List<Vector3>();
+            if(g_NPCController.TestTargetLocation != null) {
+                GoTo(g_NPCController.TestTargetLocation.position);
+            }
         }
 
         #endregion
@@ -421,7 +424,8 @@ namespace NPC {
         private void ComputeSocialForces(ref Vector3 currentTarget) {
             currentTarget = Vector3.Normalize(currentTarget);
             Vector3 preferredForce = Mass * ((currentTarget * g_CurrentSpeed) - Velocity) * Time.deltaTime;
-            Vector3 repulsionForce = ComputeAgentsRepulsionForce();
+            Vector3 repulsionForce = ComputeAgentsRepulsionForce() + ComputeWallsRepulsionForce();
+            Vector3 proximityForce = ComputeProximityForce();
             currentTarget += preferredForce + repulsionForce;
         }
 
@@ -434,12 +438,34 @@ namespace NPC {
                 if (distance >= (radii * DistanceTolerance))  continue;
                 Vector3 normal = Vector3.Normalize(transform.position - p.GetPosition());
                 // go back and right by default
-                totalForces += normal * AgentRepulsionWeight;
-                totalForces += Vector3.Cross(Vector3.up, normal) * AgentRepulsionWeight;
+                totalForces += normal * AgentRepulsionWeight;                               // -forward
+                totalForces += Vector3.Cross(Vector3.up, normal) * AgentRepulsionWeight;    // right by default
             }
             return totalForces;
         }
 
+        private Vector3 ComputeWallsRepulsionForce() {
+            return Vector3.zero;
+        }
+
+        private Vector3 ComputeProximityForce() {
+            Vector3 totalForce = Vector3.zero;
+            foreach (IPerceivable p in g_NPCController.Perception.PerceivedEntities) {
+                float distance = Vector3.Distance(transform.position, p.GetPosition());
+                float radii = AgentRadius + p.GetAgentRadius();
+                float scale = 0f;
+                Vector3 away;
+                if (p.GetNPCEntityType() == PERCEIVEABLE_TYPE.NPC) {
+                    away = Vector3.Normalize(transform.position - p.GetPosition());
+                    scale = Mathf.Exp(radii - distance);
+                } else {
+                    away = Vector3.Normalize(transform.position - p.GetPosition());
+                    scale = Mathf.Exp(radii - distance);
+                }
+                totalForce += away * scale;
+            }
+            return totalForce;
+        }
         #endregion
     }
 
