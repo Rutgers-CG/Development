@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System;
 
 namespace NPC {
-
+    
     #region Enums
     public enum LOCO_STATE {
         IDLE,
@@ -21,6 +21,29 @@ namespace NPC {
         FALL
     }
 
+    public enum GESTURE_CODE {
+        [NPCAnimation("Gest_Acknowledge", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        ACKNOWLEDGE,
+        [NPCAnimation("Gest_Angry", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        ANGRY,
+        [NPCAnimation("Gest_Why", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        WHY,
+        [NPCAnimation("Gest_Short_Wave", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        WAVE_HELLO,
+        [NPCAnimation("Gest_Negate", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        NEGATE,
+        [NPCAnimation("Body_Die", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.FULL_BODY)]
+        DIE,
+        [NPCAnimation("Gest_Anger", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        ANGER,
+        [NPCAnimation("Gest_Dissapointment", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        DISSAPOINTMENT,
+        [NPCAnimation("Gest_Hurray", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        HURRAY,
+        [NPCAnimation("Gest_Grab_Front", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        GRAB_FRONT
+    }
+
     public enum NAV_STATE {
         DISABLED = 0,
         STEERING_NAV,
@@ -30,9 +53,9 @@ namespace NPC {
 
     [System.Serializable]
     public class NPCBody : MonoBehaviour {
-
-
+        
         #region Members
+
         [SerializeField]
         NavMeshAgent gNavMeshAgent;
         [SerializeField]
@@ -43,6 +66,10 @@ namespace NPC {
         CapsuleCollider gCapsuleCollider;
 
         private bool g_LookingAround = false;
+
+        private Vector3 g_Velocity;
+        private Vector3 g_Acceleration;
+
         private Vector3 g_TargetLocation;
         private Vector3 g_LastpdatedPosition;
 
@@ -55,6 +82,7 @@ namespace NPC {
         private static float MAX_RUN_SPEED      =  1.00f * SPEED_MOD;
         private static float MIN_WALK_SPEED     =  -1* MAX_WALK__SPEED;
         private static float MIN_RUN_SPEED      =  -1 * MAX_WALK__SPEED;
+        private static Dictionary<GESTURE_CODE, string> m_Gestures;
 
         private LOCO_STATE g_CurrentStateFwd    = LOCO_STATE.IDLE;
         private LOCO_STATE g_CurrentStateGnd    = LOCO_STATE.GROUND;
@@ -69,6 +97,7 @@ namespace NPC {
         private bool g_Navigating = false;
         private static int gHashJump = Animator.StringToHash("JumpLoco");
         private static int gHashIdle = Animator.StringToHash("Idle");
+        private Vector3 g_TargetOrientation;
 
         // navigation queue
         List<Vector3> g_NavQueue;
@@ -86,6 +115,9 @@ namespace NPC {
         private float TurnRightAngle { get; set; }
 
         private NPCController g_NPCController;
+
+        private string g_GesturesLayer = "Gestures";
+
         #endregion
 
         #region Properties
@@ -202,6 +234,10 @@ namespace NPC {
         }
 
         void Start() {
+            // Initialize static members for all NPC
+            if(NPCBody.m_Gestures == null) {
+                InitializeGestures();
+            }
             g_NPCController = GetComponent<NPCController>();
             g_Animator = gameObject.GetComponent<Animator>();
             gIKController = gameObject.GetComponent<NPCIKController>();
@@ -212,7 +248,7 @@ namespace NPC {
             if (gIKController == null) IKEnabled = false;
             g_NavQueue = new List<Vector3>();
             if(g_NPCController.TestTargetLocation != null) {
-                GoTo(g_NPCController.TestTargetLocation.position);
+                GoTo( new List<Vector3>() { g_NPCController.TestTargetLocation.position } );
             }
         }
 
@@ -222,6 +258,7 @@ namespace NPC {
         public void UpdateBody() {
             
             UpdateNavigation();
+            UpdateOrientation();
 
             g_LastpdatedPosition = transform.position;
 
@@ -313,16 +350,49 @@ namespace NPC {
             }
         }
 
-        public void GoTo(Vector3 location) {
+        #region Affordances
+        /// <summary>
+        /// No path finding involved.
+        /// </summary>
+        /// <param name="location"></param>
+        [NPCAffordance("WalkTowards")]
+        public void WalkTowards(Vector3 location) {
             SetIdle();
             g_NavQueue.Clear();
             g_NavQueue.Add(location);
         }
 
+        /// <summary>
+        /// The queue will we checked and followed every UpdateNavigation call
+        /// </summary>
+        /// <param name="List of locations to follow"></param>
+        [NPCAffordance("GoTo")]
         public void GoTo(List<Vector3> location) {
             SetIdle();
             g_NavQueue.Clear();
             g_NavQueue = location;
+            
+        }
+
+        [NPCAffordance("OrientTowards")]        
+        public void OrientTowards(Vector3 target) {
+            g_TargetOrientation = target;
+        }
+
+        [NPCAffordance("StartLookAt")]
+        public void StartLookAt(Transform t) {
+            gIKController.LOOK_AT_TARGET = t;
+        }
+
+        [NPCAffordance("StopLookAt")]
+        public void StopLookAt() {
+            gIKController.LOOK_AT_TARGET = null;
+        }
+
+        [NPCAffordance("DoGesture")]
+        public void DoGesture(string t) {
+            // resolve NPCAnimation attribute
+            // exeucte accordingly
         }
 
         /// <summary>
@@ -338,19 +408,19 @@ namespace NPC {
                 go.transform.position = pos(transform.position);
                 go.transform.rotation = transform.rotation;
                 go.transform.SetParent(transform);
-                LookAt(go.transform);
+                StartLookAt(go.transform);
                 g_LookingAround = true;
             } else if (g_LookingAround) {
                 go = gIKController.LOOK_AT_TARGET.gameObject;
-                LookAt(null);
+                StopLookAt();
                 DestroyImmediate(go);
                 g_LookingAround = false;
             }
         }
 
-        public void LookAt(Transform t) {
-            gIKController.LOOK_AT_TARGET = t;
-        }
+
+        #endregion
+
         #endregion
 
         #region Private_Functions
@@ -359,7 +429,6 @@ namespace NPC {
             if (Navigation != NAV_STATE.DISABLED) {
                 if (Navigation == NAV_STATE.STEERING_NAV) {
                     if (g_NavQueue.Count > 0) {
-                        g_NPCController.Debug("NPCBody --> Handling steering with queue: " + g_NavQueue.Count);
                         HandleSteering();
                     } g_Navigating = false;
                 } else {
@@ -383,8 +452,8 @@ namespace NPC {
 
         private void HandleSteering() {
             g_TargetLocation = g_NavQueue[0];
+            g_TargetOrientation = g_TargetLocation;
             float distance = Vector3.Distance(transform.position, g_TargetLocation);
-            // desired goal
             Vector3 targetDirection = g_TargetLocation - transform.position;
             if(EnableSocialForces) {
                 ComputeSocialForces(ref targetDirection);
@@ -398,12 +467,12 @@ namespace NPC {
                     Move(d);
                 } else {
                     Move(LOCO_STATE.FORWARD);
-                    if (angle > 2.0f) {
+                    if (angle > 5.0f) {
                         Move(d);
                     } else Move(LOCO_STATE.FRONT);
                 }
             } else {
-                // discard the point
+                g_TargetOrientation = transform.position + transform.forward;
                 g_NavQueue.RemoveAt(0);
             }
         }
@@ -466,6 +535,27 @@ namespace NPC {
             }
             return totalForce;
         }
+
+        private void UpdateOrientation() {
+            if(g_CurrentStateFwd != LOCO_STATE.FORWARD && !g_Navigating) {
+                Vector3 targetDirection = g_TargetOrientation - transform.position;
+                float angle = Vector3.Angle(targetDirection, transform.forward);
+                LOCO_STATE d = Direction(targetDirection) < 1.0f ? LOCO_STATE.LEFT : LOCO_STATE.RIGHT;
+                if (angle > 5.0f) {
+                    Move(d);
+                }
+            }
+        }
+
+        private void InitializeGestures() {
+            Array a = Enum.GetValues(typeof(GESTURE_CODE));
+
+            foreach(var t in a) {
+                // string name = Enum.GetName(typeof[GESTURE_CODE], t);
+            }
+
+        }
+
         #endregion
     }
 

@@ -146,6 +146,10 @@ namespace NPC {
             }
         }
 
+        public void OrientTowards(Vector3 t) {
+            gBody.OrientTowards(t);
+        }
+        
         public bool AddNPCModule(INPCModule mod) {
             if (g_NPCModules == null) g_NPCModules = new Dictionary<string, INPCModule>();
             if (g_NPCModules.ContainsKey(mod.NPCModuleName())) return false;
