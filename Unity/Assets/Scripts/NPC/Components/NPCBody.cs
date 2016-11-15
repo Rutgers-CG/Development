@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using System.Reflection;
 
 namespace NPC {
     
@@ -21,6 +22,9 @@ namespace NPC {
         FALL
     }
 
+    /// <summary>
+    /// To add gestures, just add it to the animator controller then define it here with the NPCAnimation System.Attribute
+    /// </summary>
     public enum GESTURE_CODE {
         [NPCAnimation("Gest_Acknowledge", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
         ACKNOWLEDGE,
@@ -82,7 +86,9 @@ namespace NPC {
         private static float MAX_RUN_SPEED      =  1.00f * SPEED_MOD;
         private static float MIN_WALK_SPEED     =  -1* MAX_WALK__SPEED;
         private static float MIN_RUN_SPEED      =  -1 * MAX_WALK__SPEED;
+
         private static Dictionary<GESTURE_CODE, string> m_Gestures;
+        private static Dictionary<NPCAffordance, string> m_Affordances;
 
         private LOCO_STATE g_CurrentStateFwd    = LOCO_STATE.IDLE;
         private LOCO_STATE g_CurrentStateGnd    = LOCO_STATE.GROUND;
@@ -92,12 +98,12 @@ namespace NPC {
         // This correlate with the parameters from the Animator
         private float g_CurrentSpeed            = 0.0f;
         private float g_CurrentVelocity         = 0.05f;
-        private float g_TurningVelocity         = 0.1f;
+        private float g_TurningVelocity         = 0.05f;
         private float g_CurrentOrientation      = 0.0f;
         private bool g_Navigating = false;
         private static int gHashJump = Animator.StringToHash("JumpLoco");
         private static int gHashIdle = Animator.StringToHash("Idle");
-        private Vector3 g_TargetOrientation;
+        private Vector3 g_TargetOrientation;                                // Wheres the NPC currently looking at
 
         // navigation queue
         List<Vector3> g_NavQueue;
@@ -115,9 +121,7 @@ namespace NPC {
         private float TurnRightAngle { get; set; }
 
         private NPCController g_NPCController;
-
-        private string g_GesturesLayer = "Gestures";
-
+        
         #endregion
 
         #region Properties
@@ -234,11 +238,15 @@ namespace NPC {
         }
 
         void Start() {
+            g_NPCController = GetComponent<NPCController>();
+
             // Initialize static members for all NPC
             if(NPCBody.m_Gestures == null) {
                 InitializeGestures();
             }
-            g_NPCController = GetComponent<NPCController>();
+            if(NPCBody.m_Affordances == null) {
+                InitializeAffordances();
+            }
             g_Animator = gameObject.GetComponent<Animator>();
             gIKController = gameObject.GetComponent<NPCIKController>();
             gNavMeshAgent = gameObject.GetComponent<NavMeshAgent>();
@@ -250,6 +258,7 @@ namespace NPC {
             if(g_NPCController.TestTargetLocation != null) {
                 GoTo( new List<Vector3>() { g_NPCController.TestTargetLocation.position } );
             }
+            g_TargetOrientation = transform.position + transform.forward;
         }
 
         #endregion
@@ -547,13 +556,35 @@ namespace NPC {
             }
         }
 
+        /// <summary>
+        /// Initialize all defined enum gestures by using reflection
+        /// </summary>
         private void InitializeGestures() {
             Array a = Enum.GetValues(typeof(GESTURE_CODE));
-
+            m_Gestures = new Dictionary<GESTURE_CODE, string>();
             foreach(var t in a) {
-                // string name = Enum.GetName(typeof[GESTURE_CODE], t);
+                Type type = t.GetType();
+                var name = Enum.GetName(type, t);
+                var att = type.GetField(name).GetCustomAttributes(typeof(NPCAnimation),false);
+                m_Gestures.Add((GESTURE_CODE)t, ((NPCAnimation)att[0]).Name);
             }
+            g_NPCController.Debug("modular NPC GESTURES successfully initialized: " + m_Gestures.Count);
+        }
 
+        /// <summary>
+        /// Initialize all existing affordances
+        /// </summary>
+        private void InitializeAffordances() {
+            Array a  = typeof(NPCBody).GetMethods();
+            m_Affordances = new Dictionary<NPCAffordance, string>();
+            foreach(MethodInfo m in a) {
+                object[] att = m.GetCustomAttributes(typeof(NPCAffordance),false);
+                if(att.Length == 1) {
+                    NPCAffordance aff = (NPCAffordance)att[0];
+                    m_Affordances.Add(aff, aff.Name);
+                }
+            }
+            g_NPCController.Debug("modular NPC AFFORDANCES successfully initialized: " + m_Affordances.Count);
         }
 
         #endregion
