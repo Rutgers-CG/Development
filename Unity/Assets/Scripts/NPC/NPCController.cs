@@ -135,6 +135,17 @@ namespace NPC {
             return g_NPCModules != null && g_NPCModules.ContainsKey(mod.NPCModuleName());
         }
 
+        public void RunTo(Vector3 t) {
+            List<Vector3> path = gAI.FindPath(t);
+            if (path.Count < 1) {
+                Debug("NPCController --> No path found to target location");
+            } else {
+                if (path.Count == 1)
+                    Debug("NPCController --> No pathfinder enabled, defaulting to steering");
+                gBody.RunTo(path);
+            }
+        }
+        
         public void GoTo(Vector3 t) {
             List<Vector3> path = gAI.FindPath(t);
             if (path.Count < 1) {
@@ -193,7 +204,9 @@ namespace NPC {
                 gMainAgent = false;
                 if (GetComponent<NPCBody>() != null) DestroyImmediate(GetComponent<NPCBody>());
                 if (GetComponent<NPCPerception>() != null) DestroyImmediate(GetComponent<NPCPerception>());
-                InitializeNPCComponents();
+                if (GetComponent<Animator>() == null) {
+                    InitializeNPCObjectComponents();
+                } else InitializeNPCComponents();
                 gInitialized = true;
             } else {
                 Debug("Loading existing NPCController settings");
@@ -204,6 +217,10 @@ namespace NPC {
 
         #region Private_Functions
         
+        private void InitializeNPCObjectComponents() {
+            EntityType = PERCEIVEABLE_TYPE.OBJECT;
+        }
+
         private void InitializeNPCComponents() {
             gAI = gameObject.AddComponent<NPCAI>();
             gPerception = gameObject.AddComponent<NPCPerception>();

@@ -119,6 +119,7 @@
     <None Include="Assets\Models\Scenario\AdventureForge\CabinetsAndShelvesReadme.txt" />
     <None Include="Assets\Models\Scenario\Locker_room_props\readme.txt" />
     <None Include="Assets\Models\Scenario\Printer\readme.txt" />
+    <None Include="Assets\Models\Scenario\plants\dd\AlphaTest-Bumped.shader" />
     <None Include="Assets\Resources\Scenario\BrokenVector\FreeLowPolyPack\README.txt" />
     <None Include="Assets\Standard Assets\Effects\GlassRefraction\Shaders\GlassStainedBumpDistort.shader" />
     <None Include="Assets\Standard Assets\Effects\ImageEffects\Shaders\BlendModesOverlay.shader" />

@@ -87,7 +87,7 @@ namespace NPC {
         private static float MIN_WALK_SPEED     =  -1* MAX_WALK__SPEED;
         private static float MIN_RUN_SPEED      =  -1 * MAX_WALK__SPEED;
 
-        private static Dictionary<GESTURE_CODE, string> m_Gestures;
+        private static Dictionary<GESTURE_CODE, NPCAnimation> m_Gestures;
         private static Dictionary<NPCAffordance, string> m_Affordances;
 
         private LOCO_STATE g_CurrentStateFwd    = LOCO_STATE.IDLE;
@@ -96,11 +96,13 @@ namespace NPC {
         private LOCO_STATE g_CurrentStateMod    = LOCO_STATE.WALK;
 
         // This correlate with the parameters from the Animator
+        private bool g_RunForce                 = false;
         private float g_CurrentSpeed            = 0.0f;
         private float g_CurrentVelocity         = 0.05f;
         private float g_TurningVelocity         = 0.05f;
         private float g_CurrentOrientation      = 0.0f;
-        private bool g_Navigating = false;
+        private bool g_Navigating               = false;
+        private bool g_TargetLocationReached= false;
         private static int gHashJump = Animator.StringToHash("JumpLoco");
         private static int gHashIdle = Animator.StringToHash("Idle");
         private Vector3 g_TargetOrientation;                                // Wheres the NPC currently looking at
@@ -127,8 +129,9 @@ namespace NPC {
         #region Properties
 
         public float AgentRepulsionWeight = 0.6f;
-        public float DistanceTolerance  = 1f;
 
+        public float DistanceTolerance  = 1f;
+        
         public float Mass {
             get {
                 return gRigidBody.mass;
@@ -191,6 +194,14 @@ namespace NPC {
             }
         }
         
+        public bool IsGesturePlaying(GESTURE_CODE gest) {
+            return g_Animator.GetCurrentAnimatorStateInfo(0).shortNameHash == m_Gestures[gest].AnimationHash;
+        }
+
+        public bool IsAtTargetLocation() {
+            return g_TargetLocationReached;
+        }
+
         public bool IsIdle {
             get {
                 return
@@ -235,6 +246,7 @@ namespace NPC {
             if(gIKController == null) {
                 gIKController = gameObject.AddComponent<NPCIKController>();
             }
+            g_NPCController.EntityType = PERCEIVEABLE_TYPE.NPC;
         }
 
         void Start() {
@@ -279,13 +291,17 @@ namespace NPC {
                     UseAnimatorController = false;
                     return;
                 }
+
+                // Is teh agent running while navigating
+                if(g_RunForce) Move(LOCO_STATE.RUN);
                 
                 // handle mod
                 float  forth    = g_CurrentStateFwd == LOCO_STATE.FORWARD ? 1.0f : -1.0f;
                 float  orient   = g_CurrentStateDir == LOCO_STATE.RIGHT ? 1.0f : -1.0f;
                 bool   duck     = (g_CurrentStateMod == LOCO_STATE.DUCK);
-                float  topF     = (g_CurrentStateMod == LOCO_STATE.RUN || g_CurrentSpeed > MAX_WALK__SPEED) 
+                float  topF     = (g_CurrentStateMod == LOCO_STATE.RUN || g_CurrentSpeed > MAX_WALK__SPEED)
                     ? MAX_RUN_SPEED : MAX_WALK__SPEED;
+
 
                 // update forward
                 if (g_CurrentStateFwd != LOCO_STATE.IDLE) {
@@ -360,6 +376,7 @@ namespace NPC {
         }
 
         #region Affordances
+
         /// <summary>
         /// No path finding involved.
         /// </summary>
@@ -371,16 +388,22 @@ namespace NPC {
             g_NavQueue.Add(location);
         }
 
+        [NPCAffordance("RunTo")]
+        public void RunTo(List<Vector3> location) {
+            GoTo(location);
+            g_RunForce = true;
+        }
+
         /// <summary>
         /// The queue will we checked and followed every UpdateNavigation call
         /// </summary>
         /// <param name="List of locations to follow"></param>
         [NPCAffordance("GoTo")]
         public void GoTo(List<Vector3> location) {
+            g_RunForce = false;
             SetIdle();
             g_NavQueue.Clear();
             g_NavQueue = location;
-            
         }
 
         [NPCAffordance("OrientTowards")]        
@@ -398,10 +421,36 @@ namespace NPC {
             gIKController.LOOK_AT_TARGET = null;
         }
 
+        /// <summary>
+        /// The caller might specify an optional parameter depeding on the type of animation.
+        /// </summary>
+        /// <param name="gesture"></param>
+        /// <param name="o"></param>
         [NPCAffordance("DoGesture")]
-        public void DoGesture(string t) {
-            // resolve NPCAnimation attribute
-            // exeucte accordingly
+        public void DoGesture(GESTURE_CODE gesture, System.Object o = null) {
+            NPCAnimation anim = m_Gestures[gesture];
+            switch(anim.ParamType) {
+                case ANIMATION_PARAM_TYPE.TRIGGER:
+                    g_Animator.SetTrigger(anim.Name);
+                    break;
+                case ANIMATION_PARAM_TYPE.BOOLEAN:
+                    bool b = (bool) o;
+                    g_Animator.SetBool(anim.Name, b);
+                    break;
+                case ANIMATION_PARAM_TYPE.FLOAT:
+                    float f = (float) o;
+                    g_Animator.SetFloat(anim.Name, f);
+                    break;
+
+            }
+        }
+
+        [NPCAffordance("StopNavigation")]
+        public void StopNavigation() {
+            g_RunForce = false;
+            g_TargetOrientation = transform.position + transform.forward;
+            g_NavQueue.Clear();
+            g_Navigating = false;
         }
 
         /// <summary>
@@ -438,6 +487,7 @@ namespace NPC {
             if (Navigation != NAV_STATE.DISABLED) {
                 if (Navigation == NAV_STATE.STEERING_NAV) {
                     if (g_NavQueue.Count > 0) {
+                        g_TargetLocationReached = false;
                         HandleSteering();
                     } g_Navigating = false;
                 } else {
@@ -483,6 +533,7 @@ namespace NPC {
             } else {
                 g_TargetOrientation = transform.position + transform.forward;
                 g_NavQueue.RemoveAt(0);
+                g_TargetLocationReached = true;
             }
         }
 
@@ -561,12 +612,14 @@ namespace NPC {
         /// </summary>
         private void InitializeGestures() {
             Array a = Enum.GetValues(typeof(GESTURE_CODE));
-            m_Gestures = new Dictionary<GESTURE_CODE, string>();
+            m_Gestures = new Dictionary<GESTURE_CODE, NPCAnimation>();
             foreach(var t in a) {
                 Type type = t.GetType();
                 var name = Enum.GetName(type, t);
                 var att = type.GetField(name).GetCustomAttributes(typeof(NPCAnimation),false);
-                m_Gestures.Add((GESTURE_CODE)t, ((NPCAnimation)att[0]).Name);
+                NPCAnimation anim = (NPCAnimation)att[0];
+                anim.AnimationHash = Animator.StringToHash(anim.Name);
+                m_Gestures.Add((GESTURE_CODE)t, anim);
             }
             g_NPCController.Debug("modular NPC GESTURES successfully initialized: " + m_Gestures.Count);
         }

@@ -29,6 +29,7 @@ namespace NPC {
         public enum INPUT_KEY {
             FORWARD = KeyCode.W,
             MODIFIER = KeyCode.LeftShift,
+            MODIFIER_SEC = KeyCode.LeftControl,
             BACKWARD = KeyCode.S,
             LEFT = KeyCode.A,
             RIGHT = KeyCode.D,
@@ -140,8 +141,9 @@ namespace NPC {
                             RaycastHit hitInfo = new RaycastHit();
                             if (Physics.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out hitInfo)) {
                                 if (Input.GetKey((KeyCode)INPUT_KEY.MODIFIER)) {
-                                    Debug.Log("Changing oritnetation");
                                     g_NPCController.OrientTowards(hitInfo.point);
+                                } else if(Input.GetKey((KeyCode)INPUT_KEY.MODIFIER_SEC)) {
+                                    g_NPCController.RunTo(hitInfo.point);
                                 } else
                                     g_NPCController.GoTo(hitInfo.point);
                             }
