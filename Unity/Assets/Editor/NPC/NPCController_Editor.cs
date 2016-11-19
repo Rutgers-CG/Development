@@ -81,7 +81,6 @@ namespace NPC {
             /* Perception */
             gShowPerception = EditorGUILayout.Foldout(gShowPerception, "Perception") && gController.Perception != null;
             if(gShowPerception) {
-                gController.EntityType = (PERCEIVEABLE_TYPE)EditorGUILayout.EnumPopup("NPC Type", (PERCEIVEABLE_TYPE)gController.EntityType);
                 gController.Perception.ViewAngle = (float) EditorGUILayout.IntSlider(label_ViewAngle, (int) gController.Perception.ViewAngle, 
                     (int) NPCPerception.MIN_VIEW_ANGLE, 
                     (int) NPCPerception.MAX_VIEW_ANGLE);

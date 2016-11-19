@@ -58,4 +58,8 @@ public class GeoSpinner : MonoBehaviour, IPerceivable {
     public PERCEIVEABLE_TYPE GetNPCEntityType() {
         return PERCEIVEABLE_TYPE.OBJECT;
     }
+
+    public Vector3 GetMainLookAtPoint() {
+        throw new NotImplementedException();
+    }
 }

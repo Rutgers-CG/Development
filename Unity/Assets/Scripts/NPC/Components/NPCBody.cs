@@ -53,6 +53,7 @@ namespace NPC {
         STEERING_NAV,
         NAVMESH_NAV
     }
+
     #endregion
 
     [System.Serializable]

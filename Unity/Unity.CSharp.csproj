@@ -96,6 +96,7 @@
     <Compile Include="Assets\Scripts\NPC\Interfaces\IPerceivable.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCControlManager.cs" />
     <Compile Include="Assets\Scripts\NPC\NPCController.cs" />
+    <Compile Include="Assets\Scripts\NPC\NPCObject.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\NavAlgorithms\NavAStar.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\NavAlgorithms\NavIncAStar.cs" />
     <Compile Include="Assets\Scripts\Pathfinding\NavAlgorithms\NavSeqAStar.cs" />
