@@ -69,6 +69,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\BehaviorTester.cs" />
     <Compile Include="Assets\Models\Fantasy\Footman\Script\MaterialChange.cs" />
     <Compile Include="Assets\Models\Fantasy\Footman\Script\playerControl.cs" />
     <Compile Include="Assets\Scripts\B-ADAPT\Behavior\BehaviorAgent.cs" />
