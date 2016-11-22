@@ -69,7 +69,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\BehaviorTester.cs" />
     <Compile Include="Assets\Models\Fantasy\Footman\Script\MaterialChange.cs" />
     <Compile Include="Assets\Models\Fantasy\Footman\Script\playerControl.cs" />
     <Compile Include="Assets\Scripts\B-ADAPT\Behavior\BehaviorAgent.cs" />
@@ -107,6 +106,7 @@
     <Compile Include="Assets\Scripts\B-ADAPT\Behavior\TreeSharpPlus\Util\ExtensionMethods.cs" />
     <Compile Include="Assets\Scripts\B-ADAPT\Behavior\TreeSharpPlus\Util\Token.cs" />
     <Compile Include="Assets\Scripts\B-ADAPT\Behavior\TreeSharpPlus\Util\Util.cs" />
+    <Compile Include="Assets\Scripts\BehaviorTester.cs" />
     <Compile Include="Assets\Scripts\Collision Detection\GJK.cs" />
     <Compile Include="Assets\Scripts\Curves\BezierSpline.cs" />
     <Compile Include="Assets\Scripts\Curves\CatmullRomSpline.cs" />
