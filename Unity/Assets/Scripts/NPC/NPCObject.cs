@@ -6,22 +6,32 @@ namespace NPC {
 
     public class NPCObject : MonoBehaviour, IPerceivable {
 
+        #region Properties
         [SerializeField]
         public Transform MainInteractionPoint;
 
         [SerializeField]
         public PERCEIVE_WEIGHT PerceptionWeightType;
 
+        [SerializeField]
+        public string Name;
+        #endregion
+
+        #region Unity_Methods
         void Reset() {
             MainInteractionPoint = transform;
             PerceptionWeightType = PERCEIVE_WEIGHT.TOTAL;
         }
+        #endregion
 
+
+        #region IPerceivable
         public Vector3 GetMainLookAtPoint() {
             return transform.position;
         }
 
         public PERCEIVEABLE_TYPE GetNPCEntityType() {
+
             return PERCEIVEABLE_TYPE.OBJECT;
         }
 
@@ -53,6 +63,13 @@ namespace NPC {
         public float GetAgentRadius() {
             throw new NotImplementedException();
         }
+        #endregion
+
+        #region Utilities
+        public override string ToString() {
+            return Name;
+        }
+        #endregion
     }
 
 }
