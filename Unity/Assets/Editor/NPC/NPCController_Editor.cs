@@ -28,6 +28,11 @@ namespace NPC {
         private const string label_AgentRepulsionWeight = "Agents Repulsion Weight";
         private const string label_AgentRepulsionDistanceTolerance = "Agents Distance Tolerance";
         private const string label_TestNPC = "Test NPC";
+        private const string label_IKFeetHeight = "IK Feet Height Correction";
+        private const string label_IKFeetForward = "IK Feet Forward Correction";
+        private const string label_IKFeetEffectorCorrector = "IK Feet Effector Height";
+        private const string label_IKUseHints = "Use IK Hints";
+        private const string label_IKFeetStairsInt = "IK Stairs Interpolation";
 
         [SerializeField]
         int selectedPathfinder;
@@ -127,6 +132,13 @@ namespace NPC {
                 if(gController.Body.Navigation != NAV_STATE.DISABLED)
                     gController.Body.NavDistanceThreshold = (float) EditorGUILayout.FloatField(label_NavStoppingThresh, (float) gController.Body.NavDistanceThreshold);
                 gController.Body.IKEnabled = (bool)EditorGUILayout.Toggle(label_IKEnabled, (bool)gController.Body.IKEnabled);
+                if (gController.Body.IKEnabled) {
+                    gController.Body.IK_USE_HINTS = (bool)EditorGUILayout.Toggle(label_IKUseHints, (bool)gController.Body.IK_USE_HINTS);
+                    gController.Body.IK_FEET_HEIGHT_CORRECTION = (float)EditorGUILayout.Slider(label_IKFeetHeight, gController.Body.IK_FEET_HEIGHT_CORRECTION, 0f, 0.5f);
+                    gController.Body.IK_FEET_FORWARD_CORRECTION = (float)EditorGUILayout.Slider(label_IKFeetForward, gController.Body.IK_FEET_FORWARD_CORRECTION, -0.5f, 0.5f);
+                    gController.Body.IK_FEET_HEIGHT_EFFECTOR_CORRECTOR = (float)EditorGUILayout.Slider(label_IKFeetEffectorCorrector, gController.Body.IK_FEET_HEIGHT_EFFECTOR_CORRECTOR, 0f, 0.3f);
+                    gController.Body.IK_FEET_STAIRS_INTERPOLATION = (float)EditorGUILayout.Slider(label_IKFeetStairsInt, gController.Body.IK_FEET_STAIRS_INTERPOLATION, 0f, 20f);
+                }
                 gController.Body.UseAnimatorController = (bool)EditorGUILayout.Toggle(label_AnimatorEnabled, (bool)gController.Body.UseAnimatorController);
                 gController.Body.UseCurves = (bool)EditorGUILayout.Toggle(label_UseAnimCurves, (bool)gController.Body.UseCurves);
                 gController.Body.EnableSocialForces = (bool)EditorGUILayout.Toggle(label_UseSocialForces, (bool)gController.Body.EnableSocialForces);
@@ -145,6 +157,7 @@ namespace NPC {
         private void OnSceneGUI() {
             if(gController != null) {
                 if(gShowPerception) {
+
                     Transform t = gController.Perception.PerceptionField.transform;
             
                     /* Draw View Angle */
