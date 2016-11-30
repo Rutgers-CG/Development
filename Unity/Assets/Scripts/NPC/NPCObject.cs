@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System;
 
 namespace NPC {
@@ -15,13 +16,55 @@ namespace NPC {
 
         [SerializeField]
         public string Name;
+
+        [SerializeField]
+        Transform AnimatedObject;
+
+        Animation g_Animation;
+
+        private bool Open = false;
+        private bool OpenState = false;
+        private HashSet<Collider> g_Colliders;
+
         #endregion
 
         #region Unity_Methods
         void Reset() {
+            AnimatedObject = transform.parent;
             MainInteractionPoint = transform;
             PerceptionWeightType = PERCEIVE_WEIGHT.TOTAL;
         }
+
+        private void Start() {
+            if(AnimatedObject != null)
+                    g_Animation = AnimatedObject.gameObject.GetComponent<Animation>();
+        }
+
+        private void OnTriggerEnter(Collider other) {
+            Open = true;
+            g_Colliders.Add(other);
+        }
+
+        private void OnTriggerExit(Collider other) {
+            g_Colliders.Remove(other);
+            if(g_Colliders.Count == 0)
+                Open = false;
+        }
+
+        private void FixedUpdate() {
+            while(g_Animation != null && !g_Animation.isPlaying) {
+                if(Open) {
+                    if(!OpenState) {
+                        g_Animation.Play("Sliding_Door");
+                    }
+                } else {
+                    if(OpenState) {
+                        g_Animation.Play("Sliding_Door_Close");
+                    }
+                }
+            }
+        }
+
         #endregion
 
 

@@ -144,6 +144,14 @@ namespace Collisions {
         public void SetEnable(bool e) {
             Enabled = e;
         }
+
+        public bool IsUpdateable() {
+            throw new NotImplementedException();
+        }
+
+        public void TickModule() {
+            throw new NotImplementedException();
+        }
         #endregion
 
         #region Support_Classes
