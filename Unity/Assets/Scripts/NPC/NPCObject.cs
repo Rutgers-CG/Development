@@ -52,7 +52,7 @@ namespace NPC {
         }
 
         private void FixedUpdate() {
-            while(g_Animation != null && !g_Animation.isPlaying) {
+            while(!(g_Animation == null || g_Animation.isPlaying)) {
                 if(Open) {
                     if(!OpenState) {
                         g_Animation.Play("Sliding_Door");
@@ -111,6 +111,10 @@ namespace NPC {
         #region Utilities
         public override string ToString() {
             return Name;
+        }
+
+        Transform IPerceivable.GetMainLookAtPoint() {
+            return transform;
         }
         #endregion
     }

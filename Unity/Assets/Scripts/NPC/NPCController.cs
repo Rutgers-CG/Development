@@ -288,8 +288,8 @@ namespace NPC {
             return PERCEIVEABLE_TYPE.NPC;
         }
 
-        public virtual Vector3 GetMainLookAtPoint() {
-            return gBody.Head.position;
+        public virtual Transform GetMainLookAtPoint() {
+            return gBody.Head;
         }
 
         #endregion

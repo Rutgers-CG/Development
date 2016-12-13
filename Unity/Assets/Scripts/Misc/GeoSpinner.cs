@@ -59,7 +59,7 @@ public class GeoSpinner : MonoBehaviour, IPerceivable {
         return PERCEIVEABLE_TYPE.OBJECT;
     }
 
-    public Vector3 GetMainLookAtPoint() {
-        throw new NotImplementedException();
+    Transform IPerceivable.GetMainLookAtPoint() {
+        return transform;
     }
 }

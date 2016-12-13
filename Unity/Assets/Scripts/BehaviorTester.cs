@@ -21,7 +21,7 @@ public class BehaviorTester : MonoBehaviour {
     protected Node ApproachAndWait(Vector3 target) {
         Val<Vector3> position = Val.V(() => target);
         // We are using the methods specified in the NPCBehavior class
-        return new Sequence(agent.GetComponent<NPCBehavior>().NPCBehavior_GoTo(target), new LeafWait(1000));
+        return new Sequence(agent.GetComponent<NPCBehavior>().NPCBehavior_GoTo(target,false), new LeafWait(1000));
     }
 
     protected Node BuildTreeRoot() {

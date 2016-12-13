@@ -42,17 +42,57 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
 
     #region Public_Functions
     
-    public Node NPCBehavior_GoTo(Val<Vector3> location) {
+    public Node NPCBehavior_OrientTowards(Vector3 t) {
+        return new LeafInvoke(() => Behavior_OrientTowards(t));
+    }
+
+    public Node NPCBehavior_LookAt(Transform t, bool start) {
+        if(start)
+            return new LeafInvoke(() => Behavior_LookAt(t));
+        else
+            return new LeafInvoke(() => Behavior_StopLookAt());
+    }
+
+    public Node NPCBehavior_GoTo(Val<Vector3> location, bool run) {
         return new LeafInvoke(
-            () => Behavior_GoTo(location.Value)
+            () => Behavior_GoTo(location.Value, run)
+        );
+    }
+
+    public Node NPCBehavior_DoGesture(GESTURE_CODE gesture, System.Object o = null) {
+        return new LeafInvoke(
+            () => Behavior_DoGesture(gesture,o)
+        );
+    }
+
+    public Node NPCBehavior_DoTimedGesture(GESTURE_CODE gesture, System.Object o = null) {
+        return new Sequence(
+            new LeafInvoke(() => Behavior_DoGesture(gesture, o)),
+            new LeafWait((long)(g_NPCController.Body.Animation(gesture).Duration*1000))
         );
     }
 
     #endregion
 
     #region Private_Functions
-    
-    private RunStatus Behavior_GoTo(Val<Vector3> location) {
+
+    private RunStatus Behavior_OrientTowards(Vector3 t) {
+        if(g_NPCController.Body.TargetOrientation != t ) {
+            g_NPCController.OrientTowards(t);
+        }
+        return g_NPCController.Body.Oriented ? RunStatus.Success : RunStatus.Running;
+    }
+
+    private RunStatus Behavior_DoGesture(GESTURE_CODE gest, System.Object o = null) {
+        if(g_NPCController.Body.IsGesturePlaying(gest)) {
+            return RunStatus.Running;
+        } else {
+            g_NPCController.Body.DoGesture(gest,o);
+            return RunStatus.Success;
+        }
+    }
+
+    private RunStatus Behavior_GoTo(Val<Vector3> location, bool run) {
         Vector3 val = location.Value;
         if (g_NPCController.Body.Navigating)
             return RunStatus.Running;
@@ -61,13 +101,25 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
         }
         else {
             try {
-                g_NPCController.GoTo(val);
+                if (run)
+                    g_NPCController.RunTo(val);
+                else g_NPCController.GoTo(val);
                 return RunStatus.Running;
             } catch(System.Exception e) {
                 // this will occur if the target is unreacheable
                 return RunStatus.Failure;
             }
         }
+    }
+
+    private RunStatus Behavior_StopLookAt() {
+        g_NPCController.Body.StopLookAt();
+        return RunStatus.Success;
+    }
+
+    private RunStatus Behavior_LookAt(Transform t) {
+        g_NPCController.Body.StartLookAt(t);
+        return RunStatus.Success;
     }
 
     #endregion

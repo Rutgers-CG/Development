@@ -33,6 +33,8 @@ namespace NPC {
         private const string label_IKFeetEffectorCorrector = "IK Feet Effector Height";
         private const string label_IKUseHints = "Use IK Hints";
         private const string label_IKFeetStairsInt = "IK Stairs Interpolation";
+        private const string label_IKFeetEnabled = "IK Feet Enabled";
+        private const string label_IKLookSmoothness = "IK Look Smoothing";
 
         [SerializeField]
         int selectedPathfinder;
@@ -65,8 +67,12 @@ namespace NPC {
                 if (gShowMods) {
                     gController.LoadNPCModules();
                     INPCModule[] mods = gController.NPCModules;
+                    GUILayoutOption[] ops = new GUILayoutOption[1];
                     foreach(INPCModule m in mods) {
+                        EditorGUILayout.BeginHorizontal();
                         EditorGUILayout.LabelField(m.NPCModuleName());
+                        m.SetEnable((bool)EditorGUILayout.Toggle((bool) m.IsEnabled()));
+                        EditorGUILayout.EndHorizontal();
                     }
                 }
             } else EditorGUILayout.LabelField("No NPC Modules Loaded");
@@ -134,10 +140,14 @@ namespace NPC {
                 gController.Body.IKEnabled = (bool)EditorGUILayout.Toggle(label_IKEnabled, (bool)gController.Body.IKEnabled);
                 if (gController.Body.IKEnabled) {
                     gController.Body.IK_USE_HINTS = (bool)EditorGUILayout.Toggle(label_IKUseHints, (bool)gController.Body.IK_USE_HINTS);
-                    gController.Body.IK_FEET_HEIGHT_CORRECTION = (float)EditorGUILayout.Slider(label_IKFeetHeight, gController.Body.IK_FEET_HEIGHT_CORRECTION, 0f, 0.5f);
-                    gController.Body.IK_FEET_FORWARD_CORRECTION = (float)EditorGUILayout.Slider(label_IKFeetForward, gController.Body.IK_FEET_FORWARD_CORRECTION, -0.5f, 0.5f);
-                    gController.Body.IK_FEET_HEIGHT_EFFECTOR_CORRECTOR = (float)EditorGUILayout.Slider(label_IKFeetEffectorCorrector, gController.Body.IK_FEET_HEIGHT_EFFECTOR_CORRECTOR, 0f, 0.3f);
-                    gController.Body.IK_FEET_STAIRS_INTERPOLATION = (float)EditorGUILayout.Slider(label_IKFeetStairsInt, gController.Body.IK_FEET_STAIRS_INTERPOLATION, 0f, 20f);
+                    gController.Body.IK_FEET_Enabled = (bool)EditorGUILayout.Toggle(label_IKFeetEnabled, (bool)gController.Body.IK_FEET_Enabled);
+                    if (gController.Body.IK_FEET_Enabled) {
+                        gController.Body.IK_LOOK_AT_SMOOTH = (float)EditorGUILayout.Slider(label_IKLookSmoothness, gController.Body.IK_LOOK_AT_SMOOTH, 1f, 10f);
+                        gController.Body.IK_FEET_HEIGHT_CORRECTION = (float)EditorGUILayout.Slider(label_IKFeetHeight, gController.Body.IK_FEET_HEIGHT_CORRECTION, 0f, 0.5f);
+                        gController.Body.IK_FEET_FORWARD_CORRECTION = (float)EditorGUILayout.Slider(label_IKFeetForward, gController.Body.IK_FEET_FORWARD_CORRECTION, -0.5f, 0.5f);
+                        gController.Body.IK_FEET_HEIGHT_EFFECTOR_CORRECTOR = (float)EditorGUILayout.Slider(label_IKFeetEffectorCorrector, gController.Body.IK_FEET_HEIGHT_EFFECTOR_CORRECTOR, 0f, 0.3f);
+                        gController.Body.IK_FEET_STAIRS_INTERPOLATION = (float)EditorGUILayout.Slider(label_IKFeetStairsInt, gController.Body.IK_FEET_STAIRS_INTERPOLATION, 0f, 20f);
+                    }
                 }
                 gController.Body.UseAnimatorController = (bool)EditorGUILayout.Toggle(label_AnimatorEnabled, (bool)gController.Body.UseAnimatorController);
                 gController.Body.UseCurves = (bool)EditorGUILayout.Toggle(label_UseAnimCurves, (bool)gController.Body.UseCurves);

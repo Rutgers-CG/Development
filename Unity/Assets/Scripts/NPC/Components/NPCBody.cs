@@ -40,12 +40,18 @@ namespace NPC {
         DIE,
         [NPCAnimation("Gest_Anger", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
         ANGER,
-        [NPCAnimation("Gest_Dissapointment", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        [NPCAnimation("Gest_Dissapointment", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE,3.11f)]
         DISSAPOINTMENT,
         [NPCAnimation("Gest_Hurray", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
         HURRAY,
-        [NPCAnimation("Gest_Grab_Front", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
-        GRAB_FRONT
+        [NPCAnimation("Gest_Grab_Front", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.FULL_BODY)]
+        GRAB_FRONT,
+        [NPCAnimation("Gest_Talk_Long", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.GESTURE)]
+        TALK_LONG,
+        [NPCAnimation("Gest_Talk_Short", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        TALK_SHORT,
+        [NPCAnimation("Gest_Think", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        THINK
     }
 
     public enum NAV_STATE {
@@ -62,7 +68,7 @@ namespace NPC {
         #region Members
 
         [SerializeField]
-        NavMeshAgent gNavMeshAgent;
+        UnityEngine.AI.NavMeshAgent gNavMeshAgent;
         [SerializeField]
         Animator g_Animator;
         [SerializeField]
@@ -102,7 +108,7 @@ namespace NPC {
         private float g_CurrentVelocity         = 0.05f;
         private float g_TurningVelocity         = 0.05f;
         private float g_CurrentOrientation      = 0.0f;
-        private static string m_ColliderHeight = "COLLIDER_Height";
+        
         private bool g_TargetLocationReached= false;
         private static int gHashJump = Animator.StringToHash("JumpLoco");
         private static int gHashIdle = Animator.StringToHash("Idle");
@@ -167,6 +173,7 @@ namespace NPC {
         }
 
         public bool Navigating;
+        public bool Oriented = false;
 
         [SerializeField]
         public NAV_STATE Navigation;
@@ -176,6 +183,9 @@ namespace NPC {
 
         [SerializeField]
         public bool IKEnabled;
+
+        [SerializeField]
+        public bool IK_FEET_Enabled;
 
         [SerializeField]
         public float IK_FEET_HEIGHT_CORRECTION;
@@ -191,6 +201,9 @@ namespace NPC {
 
         [SerializeField]
         public bool IK_USE_HINTS = true;
+
+        [SerializeField]
+        public float  IK_LOOK_AT_SMOOTH = 1f;
 
         [SerializeField]
         public bool UseAnimatorController;
@@ -240,7 +253,7 @@ namespace NPC {
         void Reset() {
             g_NPCController = GetComponent<NPCController>();
             g_NPCController.Debug("Initializing NPCBody ... ");
-            gNavMeshAgent = gameObject.GetComponent<NavMeshAgent>();
+            gNavMeshAgent = gameObject.GetComponent<UnityEngine.AI.NavMeshAgent>();
             gRigidBody = gameObject.GetComponent<Rigidbody>();
             g_Animator = gameObject.GetComponent<Animator>();
             gIKController = gameObject.GetComponent<NPCIKController>();
@@ -248,7 +261,7 @@ namespace NPC {
             gIKController.hideFlags = HideFlags.HideInInspector;
             gCapsuleCollider = gameObject.GetComponent<CapsuleCollider>();
             if (gNavMeshAgent == null) {
-                gNavMeshAgent = gameObject.AddComponent<NavMeshAgent>();
+                gNavMeshAgent = gameObject.AddComponent<UnityEngine.AI.NavMeshAgent>();
                 gNavMeshAgent.autoBraking = true;
                 gNavMeshAgent.enabled = false;
                 g_NPCController.Debug("NPCBody requires a NavMeshAgent if navigation is on, adding a default one.");
@@ -286,7 +299,7 @@ namespace NPC {
             }
             g_Animator = gameObject.GetComponent<Animator>();
             gIKController = gameObject.GetComponent<NPCIKController>();
-            gNavMeshAgent = gameObject.GetComponent<NavMeshAgent>();
+            gNavMeshAgent = gameObject.GetComponent<UnityEngine.AI.NavMeshAgent>();
             gCapsuleCollider = gameObject.GetComponent<CapsuleCollider>();
             gRigidBody = GetComponent<Rigidbody>();
             if (g_Animator == null || gNavMeshAgent == null) UseAnimatorController = false;
@@ -301,6 +314,11 @@ namespace NPC {
         #endregion
 
         #region Public_Funtions
+
+        public NPCAnimation Animation(GESTURE_CODE g) {
+            return m_Gestures[g];
+        }
+
         public void UpdateBody() {
             
             if(IKEnabled) {
@@ -437,12 +455,29 @@ namespace NPC {
 
         [NPCAffordance("OrientTowards")]        
         public void OrientTowards(Vector3 target) {
+            Oriented = g_TargetOrientation == target;
             g_TargetOrientation = target;
+        }
+
+        public Vector3 TargetLocation {
+            get {
+                return g_TargetLocation;
+            }
+        }
+
+        public Vector3 TargetOrientation {
+            get {
+                return g_TargetOrientation; 
+            }
         }
 
         [NPCAffordance("StartLookAt")]
         public void StartLookAt(Transform t) {
-            gIKController.LOOK_AT_TARGET = t;
+            IPerceivable p = t.GetComponent<IPerceivable>();
+            if (p != null) {
+                gIKController.LOOK_AT_TARGET = p.GetMainLookAtPoint();
+            } else 
+                gIKController.LOOK_AT_TARGET = t;
         }
 
         [NPCAffordance("StopLookAt")]
@@ -452,6 +487,8 @@ namespace NPC {
 
         /// <summary>
         /// The caller might specify an optional parameter depeding on the type of animation.
+        /// The optional parameter could be a float or a boolean. Triggers do not require
+        /// parameters.
         /// </summary>
         /// <param name="gesture"></param>
         /// <param name="o"></param>
@@ -463,7 +500,7 @@ namespace NPC {
                     g_Animator.SetTrigger(anim.Name);
                     break;
                 case ANIMATION_PARAM_TYPE.BOOLEAN:
-                    bool b = (bool) o;
+                    bool b = o == null ? !g_Animator.GetBool(anim.Name) : (bool) o;
                     g_Animator.SetBool(anim.Name, b);
                     break;
                 case ANIMATION_PARAM_TYPE.FLOAT:
@@ -631,9 +668,9 @@ namespace NPC {
                 Vector3 v1 = new Vector3(targetDirection.x, 0, targetDirection.z);
                 float angle = Vector3.Angle(v1, transform.forward);
                 LOCO_STATE d = Direction(targetDirection) < 1.0f ? LOCO_STATE.LEFT : LOCO_STATE.RIGHT;
-                if (angle > 5.0f) {
+                if (angle > 15.0f) {
                     Move(d);
-                }
+                } else Oriented = true;
             }
         }
 
