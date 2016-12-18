@@ -18,8 +18,7 @@ public class BehaviorTester : MonoBehaviour {
         behaviorAgent.StartBehavior();
     }
 
-    protected Node ApproachAndWait(Vector3 target) {
-        Val<Vector3> position = Val.V(() => target);
+    protected Node ApproachAndWait(Transform target) {
         // We are using the methods specified in the NPCBehavior class
         return new Sequence(agent.GetComponent<NPCBehavior>().NPCBehavior_GoTo(target,false), new LeafWait(1000));
     }
@@ -29,7 +28,7 @@ public class BehaviorTester : MonoBehaviour {
         Func<bool> act = () => (Vector3.Distance(originalLocation, targetLocation.position) > 5);
         Node goTo = new DecoratorLoop(
                         new Sequence(
-                            ApproachAndWait(targetLocation.position)));
+                            ApproachAndWait(targetLocation)));
         Node trigger = new DecoratorLoop(new LeafAssert(act));
         Node root = new DecoratorLoop(new DecoratorForceStatus(RunStatus.Success, new SequenceParallel(trigger, goTo)));
         return root;

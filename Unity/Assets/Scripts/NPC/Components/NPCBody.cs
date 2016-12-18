@@ -42,16 +42,19 @@ namespace NPC {
         ANGER,
         [NPCAnimation("Gest_Dissapointment", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE,3.11f)]
         DISSAPOINTMENT,
-        [NPCAnimation("Gest_Hurray", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        [NPCAnimation("Gest_Hurray", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE,2.05f)]
         HURRAY,
         [NPCAnimation("Gest_Grab_Front", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.FULL_BODY)]
         GRAB_FRONT,
-        [NPCAnimation("Gest_Talk_Long", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.GESTURE)]
+        [NPCAnimation("Gest_Talk_Long", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.GESTURE,4f)]
         TALK_LONG,
-        [NPCAnimation("Gest_Talk_Short", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        [NPCAnimation("Gest_Talk_Short", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE,1.12f)]
         TALK_SHORT,
         [NPCAnimation("Gest_Think", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
-        THINK
+        THINK,
+        [NPCAnimation("Gest_Greet_At_Distance", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        GREET_AT_DISTANCE
+
     }
 
     public enum NAV_STATE {
@@ -84,6 +87,10 @@ namespace NPC {
         private Vector3 g_TargetLocation;
         private Vector3 g_LastpdatedPosition;
 
+        // Timed gestures / IK controller
+        private NPCTimer g_Timer;
+        
+
         private static string g_AnimParamSpeed      = "Speed";
         private static string g_AnimParamDirection  = "Direction";
         private static string g_AnimParamJump       = "Jump";
@@ -109,7 +116,7 @@ namespace NPC {
         private float g_TurningVelocity         = 0.05f;
         private float g_CurrentOrientation      = 0.0f;
         
-        private bool g_TargetLocationReached= false;
+        private bool g_TargetLocationReached= true;
         private static int gHashJump = Animator.StringToHash("JumpLoco");
         private static int gHashIdle = Animator.StringToHash("Idle");
         private Vector3 g_TargetOrientation;                                // Wheres the NPC currently looking at
@@ -130,14 +137,22 @@ namespace NPC {
         private float TurnRightAngle { get; set; }
 
         private NPCController g_NPCController;
-        
+
         #endregion
 
         #region Properties
 
+        public GESTURE_CODE LastGesture;
+
+        public List<Vector3> NavigationPath {
+            get {
+                return g_NavQueue;
+            }
+        }
+
         public float AgentRepulsionWeight = 0.6f;
 
-        public float DistanceTolerance  = 1f;
+        public float DistanceTolerance  = 1.25f;
         
         public float Mass {
             get {
@@ -174,6 +189,9 @@ namespace NPC {
 
         public bool Navigating;
         public bool Oriented = false;
+
+        [SerializeField]
+        public float StepHeight = 0.3f;
 
         [SerializeField]
         public NAV_STATE Navigation;
@@ -230,7 +248,7 @@ namespace NPC {
         }
         
         public bool IsGesturePlaying(GESTURE_CODE gest) {
-            return g_Animator.GetCurrentAnimatorStateInfo(0).shortNameHash == m_Gestures[gest].AnimationHash;
+            return LastGesture == gest && !g_Timer.Finished;
         }
 
         public bool IsAtTargetLocation(Vector3 targetLoc) {
@@ -288,6 +306,7 @@ namespace NPC {
         }
 
         void Start() {
+
             g_NPCController = GetComponent<NPCController>();
 
             // Initialize static members for all NPC
@@ -308,7 +327,9 @@ namespace NPC {
             if(g_NPCController.TestTargetLocation != null) {
                 GoTo( new List<Vector3>() { g_NPCController.TestTargetLocation.position } );
             }
+            g_TargetLocation = transform.position;
             g_TargetOrientation = transform.position + transform.forward;
+            g_Timer = new NPCTimer();
         }
 
         #endregion
@@ -333,7 +354,11 @@ namespace NPC {
             g_LastpdatedPosition = transform.position;
 
             if (UseAnimatorController) {
-                
+
+                // Update gestures timer
+                if(!g_Timer.Finished)
+                    g_Timer.UpdateTimer();
+
                 // If accidentally checked
                 if (g_Animator == null) {
                     g_NPCController.Debug("NPCBody --> No Animator in agent, disabling UseAnimatorController");
@@ -461,7 +486,8 @@ namespace NPC {
 
         public Vector3 TargetLocation {
             get {
-                return g_TargetLocation;
+                return g_NavQueue.Count == 0 ?
+                    transform.position : g_NavQueue[g_NavQueue.Count-1];
             }
         }
 
@@ -493,22 +519,24 @@ namespace NPC {
         /// <param name="gesture"></param>
         /// <param name="o"></param>
         [NPCAffordance("DoGesture")]
-        public void DoGesture(GESTURE_CODE gesture, System.Object o = null) {
+        public void DoGesture(GESTURE_CODE gesture, System.Object o = null, bool timed = false) {
             NPCAnimation anim = m_Gestures[gesture];
-            switch(anim.ParamType) {
+            switch (anim.ParamType) {
                 case ANIMATION_PARAM_TYPE.TRIGGER:
                     g_Animator.SetTrigger(anim.Name);
                     break;
                 case ANIMATION_PARAM_TYPE.BOOLEAN:
-                    bool b = o == null ? !g_Animator.GetBool(anim.Name) : (bool) o;
+                    bool b = o == null ? !g_Animator.GetBool(anim.Name) : (bool)o;
                     g_Animator.SetBool(anim.Name, b);
                     break;
                 case ANIMATION_PARAM_TYPE.FLOAT:
-                    float f = (float) o;
+                    float f = (float)o;
                     g_Animator.SetFloat(anim.Name, f);
                     break;
-
             }
+            LastGesture = gesture;
+            if (timed)
+                g_Timer.StartTimer(m_Gestures[gesture].Duration);
         }
 
         [NPCAffordance("StopNavigation")]
@@ -518,6 +546,8 @@ namespace NPC {
             g_TargetOrientation = transform.position + transform.forward;
             g_NavQueue.Clear();
             Navigating = false;
+            g_TargetLocation = transform.position;
+            g_TargetLocationReached = !Navigating;
         }
 
         /// <summary>
@@ -581,6 +611,12 @@ namespace NPC {
             g_TargetOrientation = g_TargetLocation;
             float distance = Vector3.Distance(transform.position, g_TargetLocation);
             Vector3 targetDirection = g_TargetLocation - transform.position;
+            if((distance <= DistanceTolerance*2f) && g_NavQueue.Count == 1) {
+                RaycastHit h;
+                if (Physics.Raycast(Head.position, targetDirection, out h, 2f)) {
+                    goto NextPoint;
+                }
+            }
             if(EnableSocialForces) {
                 ComputeSocialForces(ref targetDirection);
             }
@@ -596,11 +632,14 @@ namespace NPC {
                         Move(d);
                     } else Move(LOCO_STATE.FRONT);
                 }
-            } else {
-                g_TargetOrientation = transform.position + transform.forward;
-                g_NavQueue.RemoveAt(0);
-                Navigating = g_TargetLocationReached = g_NavQueue.Count > 0;
+                return;
             }
+NextPoint:
+            g_TargetOrientation = transform.position + transform.forward;
+            g_NavQueue.RemoveAt(0);
+            Navigating = g_NavQueue.Count > 0;
+            g_TargetLocationReached = !Navigating;
+            
         }
 
         private float Direction(Vector3 direction) {
@@ -619,7 +658,7 @@ namespace NPC {
         private void ComputeSocialForces(ref Vector3 currentTarget) {
             currentTarget = Vector3.Normalize(currentTarget);
             Vector3 preferredForce = Mass * ((currentTarget * g_CurrentSpeed) - Velocity) * Time.deltaTime;
-            Vector3 repulsionForce = ComputeAgentsRepulsionForce() + ComputeWallsRepulsionForce();
+            Vector3 repulsionForce = ComputeAgentsRepulsionForce();
             Vector3 proximityForce = ComputeProximityForce();
             currentTarget += preferredForce + repulsionForce;
         }
@@ -639,15 +678,13 @@ namespace NPC {
             return totalForces;
         }
 
-        private Vector3 ComputeWallsRepulsionForce() {
-            return Vector3.zero;
-        }
-
         private Vector3 ComputeProximityForce() {
             Vector3 totalForce = Vector3.zero;
             foreach (IPerceivable p in g_NPCController.Perception.PerceivedEntities) {
                 float distance = Vector3.Distance(transform.position, p.GetPosition());
                 float radii = AgentRadius + p.GetAgentRadius();
+                if (g_TargetLocation == p.GetPosition() && distance <= radii * 1.5f)
+                    StopNavigation();
                 float scale = 0f;
                 Vector3 away;
                 if (p.GetNPCEntityType() == PERCEIVEABLE_TYPE.NPC) {

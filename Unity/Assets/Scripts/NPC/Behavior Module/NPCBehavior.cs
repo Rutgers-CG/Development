@@ -29,7 +29,8 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
     
     private NPCController g_NPCController;
     public bool Enabled = true;
-    
+    private bool g_GestureRunning = false;
+
     #endregion
 
     #region Unity_Methods
@@ -43,32 +44,33 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
     #region Public_Functions
     
     public Node NPCBehavior_OrientTowards(Vector3 t) {
+        g_NPCController.Debug("Orienting");
         return new LeafInvoke(() => Behavior_OrientTowards(t));
     }
 
     public Node NPCBehavior_LookAt(Transform t, bool start) {
+        g_NPCController.Debug("Looking");
         if(start)
             return new LeafInvoke(() => Behavior_LookAt(t));
         else
             return new LeafInvoke(() => Behavior_StopLookAt());
     }
 
-    public Node NPCBehavior_GoTo(Val<Vector3> location, bool run) {
+    public Node NPCBehavior_GoTo(Transform t, bool run) {
+        g_NPCController.Debug("Going");
         return new LeafInvoke(
-            () => Behavior_GoTo(location.Value, run)
-        );
-    }
-
-    public Node NPCBehavior_DoGesture(GESTURE_CODE gesture, System.Object o = null) {
-        return new LeafInvoke(
-            () => Behavior_DoGesture(gesture,o)
+            () => Behavior_GoTo(t, run)
         );
     }
 
     public Node NPCBehavior_DoTimedGesture(GESTURE_CODE gesture, System.Object o = null) {
-        return new Sequence(
-            new LeafInvoke(() => Behavior_DoGesture(gesture, o)),
-            new LeafWait((long)(g_NPCController.Body.Animation(gesture).Duration*1000))
+        return NPCBehavior_DoGesture(gesture, o, true);
+    }
+
+    public Node NPCBehavior_DoGesture(GESTURE_CODE gesture, System.Object o = null, bool timed = false) {
+        g_NPCController.Debug("Gesturing");
+        return new LeafInvoke(
+            () => Behavior_DoGesture(gesture,o, timed)
         );
     }
 
@@ -83,20 +85,30 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
         return g_NPCController.Body.Oriented ? RunStatus.Success : RunStatus.Running;
     }
 
-    private RunStatus Behavior_DoGesture(GESTURE_CODE gest, System.Object o = null) {
-        if(g_NPCController.Body.IsGesturePlaying(gest)) {
+    private RunStatus Behavior_DoGesture(GESTURE_CODE gest, System.Object o = null, bool timed = false) {
+        if (g_NPCController.Body.IsGesturePlaying(gest)) {
             return RunStatus.Running;
-        } else {
-            g_NPCController.Body.DoGesture(gest,o);
+        } else if (g_GestureRunning) {
+            g_GestureRunning = false;
+            g_NPCController.Debug("Finished gesture");
             return RunStatus.Success;
+        }  else {
+            try {
+                g_NPCController.Body.DoGesture(gest, o, timed);
+                g_GestureRunning = true;
+                return RunStatus.Running;
+            } catch (System.Exception e ) {
+                g_NPCController.Debug("Could not initialize gesture with error: " + e.Message);
+                return RunStatus.Failure;
+            }
         }
+        
     }
 
-    private RunStatus Behavior_GoTo(Val<Vector3> location, bool run) {
-        Vector3 val = location.Value;
-        if (g_NPCController.Body.Navigating)
-            return RunStatus.Running;
-        else if (g_NPCController.Body.IsAtTargetLocation(val)) {
+    private RunStatus Behavior_GoTo(Transform t, bool run) {
+        Vector3 val = t.position;
+        if (g_NPCController.Body.IsAtTargetLocation(val)) {
+            g_NPCController.Debug("Finished go to");
             return RunStatus.Success;
         }
         else {
@@ -119,6 +131,7 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
 
     private RunStatus Behavior_LookAt(Transform t) {
         g_NPCController.Body.StartLookAt(t);
+        g_NPCController.Debug("Finished look at");
         return RunStatus.Success;
     }
 
