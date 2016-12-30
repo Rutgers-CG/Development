@@ -86,10 +86,14 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
         );
     }
 
+    public override string ToString() {
+        return g_NPCController.name;
+    }
+
     #endregion
 
     #region Private_Functions
-    
+
     private RunStatus Behavior_OrientTowards(Vector3 t) {
         if(g_NPCController.Body.TargetOrientation != t ) {
             g_NPCController.OrientTowards(t);
