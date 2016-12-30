@@ -43,6 +43,18 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
 
     #region Public_Functions
     
+    public Node NPCBehavior_TakeSit(Transform t) {
+        g_NPCController.Debug("Sitting down");
+        return new Sequence(
+                NPCBehavior_GoTo(t, true)
+                // NPCBehavior_OrientTowards(t.position + t.forward)//,
+                //new SequenceParallel(
+                //    NPCBehavior_DoGesture(GESTURE_CODE.SIT),
+                //    NPCBehavior_DoGesture(GESTURE_CODE.SITTING,true)
+                //    )
+            );
+    }
+
     public Node NPCBehavior_OrientTowards(Vector3 t) {
         g_NPCController.Debug("Orienting");
         return new LeafInvoke(() => Behavior_OrientTowards(t));
@@ -77,7 +89,7 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
     #endregion
 
     #region Private_Functions
-
+    
     private RunStatus Behavior_OrientTowards(Vector3 t) {
         if(g_NPCController.Body.TargetOrientation != t ) {
             g_NPCController.OrientTowards(t);
@@ -106,16 +118,15 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
     }
 
     private RunStatus Behavior_GoTo(Transform t, bool run) {
-        Vector3 val = t.position;
-        if (g_NPCController.Body.IsAtTargetLocation(val)) {
+        if (g_NPCController.Body.IsAtTargetLocation(t.position)) {
             g_NPCController.Debug("Finished go to");
             return RunStatus.Success;
         }
         else {
             try {
                 if (run)
-                    g_NPCController.RunTo(val);
-                else g_NPCController.GoTo(val);
+                    g_NPCController.RunTo(t.position);
+                else g_NPCController.GoTo(t.position);
                 return RunStatus.Running;
             } catch(System.Exception e) {
                 // this will occur if the target is unreacheable
