@@ -308,7 +308,7 @@ namespace NPC {
             g_NPCController.EntityType = PERCEIVEABLE_TYPE.NPC;
         }
 
-        void Start() {
+        void Awake() {
 
             g_NPCController = GetComponent<NPCController>();
 

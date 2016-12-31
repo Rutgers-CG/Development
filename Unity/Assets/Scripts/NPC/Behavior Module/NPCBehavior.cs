@@ -23,13 +23,20 @@ using System;
 /// 
 /// </summary>
 
-public class NPCBehavior : MonoBehaviour, INPCModule {
+public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
 
     #region Members
     
     private NPCController g_NPCController;
     public bool Enabled = true;
     private bool g_GestureRunning = false;
+    BehaviorObject g_BehaviorObject;
+
+    public BehaviorObject Behavior {
+        get {
+            return g_BehaviorObject;
+        }
+    }
 
     #endregion
 
@@ -37,12 +44,18 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
 
     void Awake() {
         g_NPCController = GetComponent<NPCController>();
+        g_BehaviorObject = new BehaviorObject();
+        g_BehaviorObject =  new BehaviorAgent(
+                                new DecoratorLoop(
+                                    new LeafAssert(() => true)));
+        BehaviorManager.Instance.Register( (IBehaviorUpdate) g_BehaviorObject );
+        g_NPCController.Debug("NPCBehavior - Initialized: " + name);
     }
 
     #endregion
 
     #region Public_Functions
-    
+
     public Node NPCBehavior_TakeSit(Transform t) {
         g_NPCController.Debug("Sitting down");
         return new Sequence(
@@ -185,6 +198,6 @@ public class NPCBehavior : MonoBehaviour, INPCModule {
     public void TickModule() {
         throw new NotImplementedException();
     }
-
+    
     #endregion
 }

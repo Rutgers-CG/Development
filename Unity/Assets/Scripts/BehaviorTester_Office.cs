@@ -13,6 +13,9 @@ public class BehaviorTester_Office : MonoBehaviour {
 
     static int g_LastSpawPoint = 0;
 
+    public int Maximum_NPCs = 5;
+    private int g_CurrentNPCs = 0;
+
     public float Spawn_Probability = 0.05f;
     public Transform targetLocation;
     public Vector3 originalLocation;
@@ -27,6 +30,7 @@ public class BehaviorTester_Office : MonoBehaviour {
     public GameObject[] NPCStreet_Agents;
     GameObject[] g_SpawningPoints;
     HashSet<NPCBehavior> g_ActiveAgents;
+    HashSet<NPCBehavior> g_InstantiatedBehaviorAgents;
 
     Dictionary<GameObject, NPCBehavior> g_NPCBehaviorActors;
 
@@ -35,62 +39,69 @@ public class BehaviorTester_Office : MonoBehaviour {
     #region Unity_Methods
     void Start() {
 
+        g_InstantiatedBehaviorAgents = new HashSet<NPCBehavior>();
+        g_SpawningPoints = GameObject.FindGameObjectsWithTag(SPAWN_POINT_TAG);
+
         if(Enabled) {
             /* Just for testing */
             g_ActiveAgents = new HashSet<NPCBehavior>();
             g_NPCBehaviorActors = new Dictionary<GameObject, NPCBehavior>();
             g_Agent = agent.GetComponent<NPCBehavior>();
             g_AgentB = secondAgent.GetComponent<NPCBehavior>();
-            behaviorAgent = new BehaviorAgent(this.BuildTreeRoot());
-            BehaviorManager.Instance.Register(behaviorAgent);
-            behaviorAgent.StartBehavior();
+            BehaviorEvent behEvent = new BehaviorEvent(doEvent => this.BuildTreeRoot(), new IHasBehaviorObject[] { (IHasBehaviorObject) g_Agent });
+            behEvent.StartEvent(1f);
             /* ---------------- */
         }
 
-        g_SpawningPoints = GameObject.FindGameObjectsWithTag(SPAWN_POINT_TAG);
-        Debug.Log("Behavior Tester - " + NPCStreet_Agents.Length + " actors found");
-        Debug.Log("Behavior Spawning Points - " + g_SpawningPoints.Length + " spawn points found");
     }
 
     void FixedUpdate() {
         if(Enabled) {
-            SpawnPedestrian();
+            //foreach (NPCBehavior b in g_InstantiatedBehaviorAgents) {
+            //    Transform targetLoc = g_SpawningPoints[g_LastSpawPoint].transform;
+            //    g_LastSpawPoint = (g_LastSpawPoint + 2) % g_SpawningPoints.Length;
+            //    BehaviorAgent bAgent = new BehaviorAgent(ApproachAndWait(b, targetLoc));
+
+            //    if(b.Behavior.CurrentEvent == null) {
+            //        IHasBehaviorObject[] agents = { b };
+            //        BehaviorEvent e = new BehaviorEvent(doEvent => ApproachAndWait(b, targetLoc), agents);
+            //        e.StartEvent(1.0f);
+            //    }
+
+            //}
+            // SpawnPedestrian();   
         }
     }
 
     #endregion
 
     private void SpawnPedestrian() {
-        if(UnityEngine.Random.value < Spawn_Probability) {
-            int val = (int)(UnityEngine.Random.value * (NPCStreet_Agents.Length - 1));
-            NPCBehavior agent = NPCStreet_Agents[val].GetComponent<NPCBehavior>();
-            Transform p1 = g_SpawningPoints[g_LastSpawPoint].transform;
-            g_LastSpawPoint = (g_LastSpawPoint + 2) % g_SpawningPoints.Length;
-            Transform p2 = g_SpawningPoints[g_LastSpawPoint].transform;
-            g_LastSpawPoint = (g_LastSpawPoint + 2) % g_SpawningPoints.Length;
-            Instantiate(agent.gameObject, p1.position, p1.rotation);
-            agent.GetComponent<NPCController>().Debug(agent.name + " spawned at " + p1.position);
-            BehaviorAgent behaviorAgent = new BehaviorAgent(ApproachAndWait(p2));
-            BehaviorManager.Instance.Register(behaviorAgent);
-            behaviorAgent.StartBehavior();
-        }
+        //if(UnityEngine.Random.value < Spawn_Probability && g_CurrentNPCs < Maximum_NPCs) {
+        //    int val = (int)(UnityEngine.Random.value * (NPCStreet_Agents.Length - 1));
+        //    g_CurrentNPCs++;
+        //    NPCBehavior agent = NPCStreet_Agents[val].GetComponent<NPCBehavior>();
+        //    Transform point = g_SpawningPoints[g_LastSpawPoint].transform;
+        //    g_LastSpawPoint = (g_LastSpawPoint + 1) % g_SpawningPoints.Length;
+        //    Instantiate(agent, point.position, point.rotation);
+        //    g_InstantiatedBehaviorAgents.Add(agent);
+        //}
     }
 
-    protected Node ApproachAndWait(Transform target) {
-        return new Sequence(g_Agent.NPCBehavior_GoTo(target, true), new LeafWait(1000));
+    protected Node ApproachAndWait(NPCBehavior agent, Transform target) {
+        return new Sequence(agent.NPCBehavior_GoTo(target, true), new LeafWait(1000));
     }
 
     protected Node BuildTreeRoot() {
         originalLocation = agent.transform.position;
-        Func<bool> act = () => (Vector3.Distance(originalLocation, targetLocation.position) > 5);
-        Node goTo = new Sequence(
+        Func<bool> act = () => false;
+        Node tree = new Sequence(
                             g_Agent.NPCBehavior_OrientTowards(FirstOrientation.transform.position),
                             g_Agent.NPCBehavior_LookAt(secondAgent.transform, true),
                             new LeafWait(2000),
                             g_Agent.NPCBehavior_LookAt(null, false),
                             new LeafWait(2000),
                             g_Agent.NPCBehavior_DoTimedGesture(GESTURE_CODE.DISSAPOINTMENT),
-                            ApproachAndWait(targetLocation),
+                            ApproachAndWait(g_Agent,targetLocation),
                             g_Agent.NPCBehavior_OrientTowards(secondAgent.transform.position),
                             new SequenceParallel(
                                 g_Agent.NPCBehavior_DoGesture(GESTURE_CODE.GREET_AT_DISTANCE),
@@ -104,8 +115,6 @@ public class BehaviorTester_Office : MonoBehaviour {
                             g_AgentB.NPCBehavior_DoTimedGesture(GESTURE_CODE.HURRAY),
                             g_AgentB.NPCBehavior_DoTimedGesture(GESTURE_CODE.TALK_LONG)
                         );
-        Node trigger = new DecoratorLoop(new LeafAssert(act));
-        Node root = goTo;
-        return root;
+        return tree;
     }
 }
