@@ -31,6 +31,8 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
     public bool Enabled = true;
     private bool g_GestureRunning = false;
     BehaviorObject g_BehaviorObject;
+    private bool g_Initialized = false;
+    private Transform[] g_RoamingPoints;
 
     public BehaviorObject Behavior {
         get {
@@ -42,39 +44,49 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
 
     #region Unity_Methods
 
-    void Awake() {
-        g_NPCController = GetComponent<NPCController>();
-        g_BehaviorObject = new BehaviorObject();
-        g_BehaviorObject =  new BehaviorAgent(
-                                new DecoratorLoop(
-                                    new LeafAssert(() => true)));
-        BehaviorManager.Instance.Register( (IBehaviorUpdate) g_BehaviorObject );
-        g_NPCController.Debug("NPCBehavior - Initialized: " + name);
-    }
+    public void Awake() { }
 
     #endregion
 
     #region Public_Functions
 
+    #endregion
+
+    #region Public_Functions
+
+    public Node ApproachAndWait(Transform target, bool run) {
+        return new Sequence(NPCBehavior_GoTo(target, run), new LeafWait(1000));
+    }
+
     public Node NPCBehavior_TakeSit(Transform t) {
-        g_NPCController.Debug("Sitting down");
         return new Sequence(
-                NPCBehavior_GoTo(t, true)
-                // NPCBehavior_OrientTowards(t.position + t.forward)//,
-                //new SequenceParallel(
-                //    NPCBehavior_DoGesture(GESTURE_CODE.SIT),
-                //    NPCBehavior_DoGesture(GESTURE_CODE.SITTING,true)
-                //    )
+                NPCBehavior_GoTo(t, false),
+                NPCBehavior_OrientTowards(t.position + t.forward),
+                new SequenceParallel(
+                    NPCBehavior_DoGesture(GESTURE_CODE.SIT),
+                    NPCBehavior_DoGesture(GESTURE_CODE.SITTING,true)
+                )
             );
     }
 
+    public Node NPCBehavior_PatrolRandomPoints(Transform[] points) {
+        g_RoamingPoints = g_RoamingPoints == null ? points : g_RoamingPoints;
+        return new DecoratorLoop (
+            new SequenceShuffle(
+                new LeafInvoke(() => Behavior_DoGesture(GESTURE_CODE.LOOK_AROUND)),
+                new LeafWait(3500),
+                new LeafInvoke(() => Behavior_Wander(false)),
+                new LeafWait(2500),
+                new LeafInvoke(() => Behavior_DoGesture(GESTURE_CODE.THINK))
+            )
+        );
+    }
+
     public Node NPCBehavior_OrientTowards(Vector3 t) {
-        g_NPCController.Debug("Orienting");
         return new LeafInvoke(() => Behavior_OrientTowards(t));
     }
 
     public Node NPCBehavior_LookAt(Transform t, bool start) {
-        g_NPCController.Debug("Looking");
         if(start)
             return new LeafInvoke(() => Behavior_LookAt(t));
         else
@@ -82,7 +94,7 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
     }
 
     public Node NPCBehavior_GoTo(Transform t, bool run) {
-        g_NPCController.Debug("Going");
+        g_NPCController.Debug(g_NPCController + " GoTo: " + t);
         return new LeafInvoke(
             () => Behavior_GoTo(t, run)
         );
@@ -93,7 +105,6 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
     }
 
     public Node NPCBehavior_DoGesture(GESTURE_CODE gesture, System.Object o = null, bool timed = false) {
-        g_NPCController.Debug("Gesturing");
         return new LeafInvoke(
             () => Behavior_DoGesture(gesture,o, timed)
         );
@@ -134,6 +145,21 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
         
     }
 
+    private RunStatus Behavior_Wander(bool run) {
+        if (!g_NPCController.Body.Navigating) {
+            try {
+                Transform t = g_RoamingPoints[(int)(UnityEngine.Random.value * (g_RoamingPoints.Length - 1))];
+                if (run)
+                    g_NPCController.RunTo(t.position);
+                else g_NPCController.GoTo(t.position);
+                return RunStatus.Running;
+            } catch (System.Exception e) {
+                // this will occur if the target is unreacheable
+                return RunStatus.Failure;
+            }
+        } else { return RunStatus.Success; }
+    }
+
     private RunStatus Behavior_GoTo(Transform t, bool run) {
         if (g_NPCController.Body.IsAtTargetLocation(t.position)) {
             g_NPCController.Debug("Finished go to");
@@ -166,6 +192,16 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
     #endregion
 
     #region INPCModule
+
+    public void InitializeModule() {
+        g_NPCController = GetComponent<NPCController>();
+        g_BehaviorObject = new BehaviorAgent(
+                                new DecoratorLoop(
+                                    new LeafAssert(() => true)));
+        BehaviorManager.Instance.Register((IBehaviorUpdate)g_BehaviorObject);
+        g_NPCController.Debug("NPCBehavior - Initialized: " + name);
+        g_Initialized = true;
+    }
 
     public bool IsEnabled() {
         return Enabled;

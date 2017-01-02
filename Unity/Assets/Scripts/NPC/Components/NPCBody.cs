@@ -57,7 +57,9 @@ namespace NPC {
         [NPCAnimation("Body_Sit", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.FULL_BODY)]
         SIT,
         [NPCAnimation("Body_Sitting", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.FULL_BODY)]
-        SITTING
+        SITTING,
+        [NPCAnimation("Gest_Look_Around", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
+        LOOK_AROUND
     }
 
     public enum NAV_STATE {
