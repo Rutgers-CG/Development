@@ -27,6 +27,7 @@ public class BehaviorTester_Office : MonoBehaviour {
     public Transform BusSitLocation;
     public Transform BusSitLocationB;
     public Vector3 originalLocation;
+    public Transform BenchSitPoint;
     private NPCBehavior g_Agent, g_AgentB, g_Guard_A, g_Policeman, g_BusTaker, g_BusTakerB;
     public GameObject agent;
     public GameObject secondAgent;
@@ -67,7 +68,7 @@ public class BehaviorTester_Office : MonoBehaviour {
             behEvent.StartEvent(1f);
             /* ---------------- */
 
-            /* Outside guard */
+            /* Outside guards */
             BehaviorEvent guarding = new BehaviorEvent(action => g_Guard_A.NPCBehavior_PatrolRandomPoints(OutBuildingPatrolPoints),
                 new IHasBehaviorObject[] { g_Guard_A });
             guarding.StartEvent(1f);
@@ -76,16 +77,26 @@ public class BehaviorTester_Office : MonoBehaviour {
                 new IHasBehaviorObject[] { g_Policeman });
             patroling.StartEvent(1f);
 
-            BehaviorEvent busTaker = new BehaviorEvent(action => g_BusTaker.NPCBehavior_TakeSit(BusSitLocation),
-                new IHasBehaviorObject[] { g_BusTaker });
+            /* Bus takers */
+            BehaviorEvent busTaker = new BehaviorEvent(action => StartBusConversation(),
+                new IHasBehaviorObject[] { g_BusTaker, g_BusTakerB });
             busTaker.StartEvent(1f);
 
-            BehaviorEvent busTakerB = new BehaviorEvent(action => g_BusTakerB.NPCBehavior_TakeSit(BusSitLocationB),
-                new IHasBehaviorObject[] { g_BusTakerB });
-            busTakerB.StartEvent(1f);
+            /* Ourside chatters */
+            NPCBehavior rachel = GameObject.Find("Rachel").GetComponent<NPCBehavior>();
+            NPCBehavior susan = GameObject.Find("Susan").GetComponent<NPCBehavior>();
+            BehaviorEvent outsideConversation = new BehaviorEvent(doAction => CasualConversation(rachel, susan),
+                new IHasBehaviorObject[] { rachel, susan });
+            outsideConversation.StartEvent(1f);
+
+            /* Waiting for the bus */
+            NPCBehavior morty = GameObject.Find("Morty").GetComponent<NPCBehavior>();
+            BehaviorEvent waitingForBus = new BehaviorEvent(doAction => WaitInPlace(morty),
+                new IHasBehaviorObject[] { morty });
+            waitingForBus.StartEvent(1f);
         }
     }
-
+    
     void FixedUpdate() {
         if(Enabled) {
             foreach (GameObject b in NPCStreetAgents) {
@@ -107,10 +118,76 @@ public class BehaviorTester_Office : MonoBehaviour {
 
     #endregion
     
+    private Node CasualConversation(NPCBehavior agentA, NPCBehavior agentB) {
+        return new DecoratorLoop(
+            new Sequence(
+                agentB.NPCBehavior_OrientTowards(agentA.transform.position),
+                agentB.NPCBehavior_LookAt(agentA.transform,true),
+                agentB.NPCBehavior_DoGesture(GESTURE_CODE.WAVE_HELLO),
+                new DecoratorForceStatus(RunStatus.Success,
+                    new Sequence(
+                        new LeafAssert(() => Vector3.Distance(agentA.transform.position,agentB.transform.position) > .5),
+                        agentA.NPCBehavior_GoTo(agentB.transform, false))
+                ),
+                agentA.NPCBehavior_OrientTowards(agentB.transform.position),
+                agentA.NPCBehavior_LookAt(agentB.transform, true),
+                new DecoratorLoop(
+                        new SequenceShuffle(
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.TALK_SHORT),
+                            agentB.NPCBehavior_DoGesture(GESTURE_CODE.TALK_SHORT),
+                            agentB.NPCBehavior_DoGesture(GESTURE_CODE.ACKNOWLEDGE),
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.NEGATE),
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.THINK),
+                            agentB.NPCBehavior_DoGesture(GESTURE_CODE.DISSAPOINTMENT),
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.TALK_LONG)
+                            )
+                    )
+                )
+            );
+    }
+
+    private Node WaitInPlace(NPCBehavior agent) {
+        Quaternion rotation = Quaternion.Euler(0, 30, 0);
+        Vector3 lookAt = rotation * agent.transform.forward;
+        return new DecoratorLoop(
+            new SequenceShuffle(
+                    agent.NPCBehavior_DoGesture(GESTURE_CODE.IDLE_SMALL_STEPS),
+                    new LeafWait(2500),
+                    agent.NPCBehavior_DoGesture(GESTURE_CODE.THINK),
+                    new LeafWait(3500),
+                    agent.NPCBehavior_DoGesture(GESTURE_CODE.LOOK_AROUND),
+                    agent.NPCBehavior_OrientTowards(agent.transform.position + agent.transform.forward),
+                    new LeafWait(4000),
+                    agent.NPCBehavior_OrientTowards(lookAt)
+                )
+            );
+    }
+
+    private Node StartBusConversation() {
+        return new Sequence(
+            new SequenceParallel(   g_BusTaker.NPCBehavior_TakeSit(BusSitLocation), 
+                g_BusTakerB.NPCBehavior_TakeSit(BusSitLocationB)),
+                g_BusTaker.NPCBehavior_LookAt(g_BusTakerB.transform, true),
+                g_BusTaker.NPCBehavior_DoGesture(GESTURE_CODE.WAVE_HELLO),
+                new DecoratorLoop(
+                        new SequenceShuffle(
+                            g_BusTaker.NPCBehavior_LookAt(g_BusTakerB.transform, true),
+                            g_BusTaker.NPCBehavior_DoGesture(GESTURE_CODE.TALK_SHORT),
+                            g_BusTakerB.NPCBehavior_DoGesture(GESTURE_CODE.TALK_LONG),
+                            g_BusTaker.NPCBehavior_DoGesture(GESTURE_CODE.NEGATE),
+                            g_BusTakerB.NPCBehavior_LookAt(g_BusTaker.transform,true),
+                            g_BusTakerB.NPCBehavior_DoGesture(GESTURE_CODE.ACKNOWLEDGE),
+                            g_BusTaker.NPCBehavior_LookAt(g_BusTakerB.transform,false)
+                            )
+                    )
+            );
+    }
+
     protected Node BuildTreeRoot() {
         originalLocation = agent.transform.position;
         Func<bool> act = () => false;
         Node tree = new Sequence(
+                            g_AgentB.NPCBehavior_TakeSit(BenchSitPoint),
                             g_Agent.NPCBehavior_OrientTowards(FirstOrientation.transform.position),
                             g_Agent.NPCBehavior_LookAt(secondAgent.transform, true),
                             new LeafWait(2000),
@@ -121,7 +198,10 @@ public class BehaviorTester_Office : MonoBehaviour {
                             g_Agent.NPCBehavior_OrientTowards(secondAgent.transform.position),
                             new SequenceParallel(
                                 g_Agent.NPCBehavior_DoGesture(GESTURE_CODE.GREET_AT_DISTANCE),
-                                g_AgentB.NPCBehavior_GoTo(g_Agent.transform,false)
+                                new Sequence(
+                                    g_AgentB.NPCBehavior_DoGesture(GESTURE_CODE.SITTING,false),
+                                    g_AgentB.NPCBehavior_GoTo(g_Agent.transform,false)
+                                    )
                                 ),
                             new SequenceParallel(
                                     g_Agent.NPCBehavior_LookAt(g_AgentB.transform,true),

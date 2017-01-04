@@ -62,10 +62,9 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
         return new Sequence(
                 NPCBehavior_GoTo(t, false),
                 NPCBehavior_OrientTowards(t.position + t.forward),
-                new SequenceParallel(
-                    NPCBehavior_DoGesture(GESTURE_CODE.SIT),
-                    NPCBehavior_DoGesture(GESTURE_CODE.SITTING,true)
-                )
+                NPCBehavior_DoGesture(GESTURE_CODE.SIT),
+                new LeafWait(1500),
+                NPCBehavior_DoGesture(GESTURE_CODE.SITTING,true)
             );
     }
 
@@ -130,7 +129,6 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
             return RunStatus.Running;
         } else if (g_GestureRunning) {
             g_GestureRunning = false;
-            g_NPCController.Debug("Finished gesture");
             return RunStatus.Success;
         }  else {
             try {
@@ -154,7 +152,7 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
                 else g_NPCController.GoTo(t.position);
                 return RunStatus.Running;
             } catch (System.Exception e) {
-                // this will occur if the target is unreacheable
+                g_NPCController.Debug(e.Message);
                 return RunStatus.Failure;
             }
         } else { return RunStatus.Success; }
