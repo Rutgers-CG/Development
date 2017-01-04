@@ -58,12 +58,16 @@ public class NPCBehavior : MonoBehaviour, INPCModule, IHasBehaviorObject {
         return new Sequence(NPCBehavior_GoTo(target, run), new LeafWait(1000));
     }
 
+    public Node NPCBehavior_TakeSit(NPCObject chair) {
+        Transform t = chair.MainInteractionPoint;
+        return NPCBehavior_TakeSit(t);
+    }
+
     public Node NPCBehavior_TakeSit(Transform t) {
         return new Sequence(
                 NPCBehavior_GoTo(t, false),
                 NPCBehavior_OrientTowards(t.position + t.forward),
-                NPCBehavior_DoGesture(GESTURE_CODE.SIT),
-                new LeafWait(1500),
+                NPCBehavior_DoTimedGesture(GESTURE_CODE.SIT),
                 NPCBehavior_DoGesture(GESTURE_CODE.SITTING,true)
             );
     }

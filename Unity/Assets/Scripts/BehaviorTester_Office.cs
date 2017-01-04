@@ -94,6 +94,17 @@ public class BehaviorTester_Office : MonoBehaviour {
             BehaviorEvent waitingForBus = new BehaviorEvent(doAction => WaitInPlace(morty),
                 new IHasBehaviorObject[] { morty });
             waitingForBus.StartEvent(1f);
+
+            /* Fred's cubicle */
+            NPCBehavior fred = GameObject.Find("Fred").GetComponent<NPCBehavior>();
+            NPCObject fredCubicle = GameObject.Find("Fred-Cubicle").GetComponent<NPCObject>();
+            BehaviorEvent fredWork = new BehaviorEvent(doEvent => DoCubicleWork(fred, fredCubicle), new IHasBehaviorObject[] { fred });
+            fredWork.StartEvent(1f);
+
+            /* Indoor Bodyguard Ramirez */
+            NPCBehavior ramirez = GameObject.Find("Ramirez").GetComponent<NPCBehavior>();
+            BehaviorEvent ramirezPhone = new BehaviorEvent(doEvent => OnThePhoneDistracted(ramirez), new IHasBehaviorObject[] { ramirez });
+            ramirezPhone.StartEvent(1f);
         }
     }
     
@@ -118,6 +129,21 @@ public class BehaviorTester_Office : MonoBehaviour {
 
     #endregion
     
+    private Node OnThePhoneDistracted(NPCBehavior agent) {
+        return new Sequence(agent.NPCBehavior_DoTimedGesture(GESTURE_CODE.STAND_PHONE_CALL, true));
+    }
+
+    private Node DoCubicleWork(NPCBehavior agent, NPCObject cubicle) {
+        NPCObject chair = cubicle.transform.Find("Chair").GetComponent<NPCObject>();
+        return new Sequence(agent.NPCBehavior_TakeSit(chair),
+                            new SequenceShuffle(
+                                agent.NPCBehavior_DoGesture(GESTURE_CODE.DESK_WRITING,true),
+                                new LeafWait(3500),
+                                agent.NPCBehavior_DoGesture(GESTURE_CODE.DESK_WRITING, false)
+                            )
+                        );
+    }
+
     private Node CasualConversation(NPCBehavior agentA, NPCBehavior agentB) {
         return new DecoratorLoop(
             new Sequence(

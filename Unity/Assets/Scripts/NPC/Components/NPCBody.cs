@@ -54,14 +54,18 @@ namespace NPC {
         THINK,
         [NPCAnimation("Gest_Greet_At_Distance", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
         GREET_AT_DISTANCE,
-        [NPCAnimation("Body_Sit", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.FULL_BODY)]
+        [NPCAnimation("Body_Sit", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.FULL_BODY, 2.75f)]
         SIT,
         [NPCAnimation("Body_Sitting", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.FULL_BODY)]
         SITTING,
         [NPCAnimation("Gest_Look_Around", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
         LOOK_AROUND,
         [NPCAnimation("Body_Idle_Small_Steps", ANIMATION_PARAM_TYPE.TRIGGER, ANIMATION_LAYER.GESTURE)]
-        IDLE_SMALL_STEPS
+        IDLE_SMALL_STEPS,
+        [NPCAnimation("Gest_Writing", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.GESTURE)]
+        DESK_WRITING,
+        [NPCAnimation("Body_On_The_Phone", ANIMATION_PARAM_TYPE.BOOLEAN, ANIMATION_LAYER.FULL_BODY, 15f)]
+        STAND_PHONE_CALL
     }
 
     public enum NAV_STATE {
@@ -624,7 +628,7 @@ namespace NPC {
             Vector3 targetDirection = g_TargetLocation - transform.position;
             if((distance <= DistanceTolerance*2f) && g_NavQueue.Count == 1) {
                 RaycastHit h;
-                if (Physics.Raycast(Head.position, targetDirection, out h, 2f)) {
+                if (Physics.Raycast(Head.position, targetDirection, out h, 0.5f)) {
                     goto NextPoint;
                 }
             }
@@ -693,7 +697,8 @@ NextPoint:
             Vector3 totalForce = Vector3.zero;
             foreach (IPerceivable p in g_NPCController.Perception.PerceivedEntities) {
                 float distance = Vector3.Distance(transform.position, p.GetPosition());
-                float radii = AgentRadius + p.GetAgentRadius();
+                float otherRadius = p.GetAgentRadius();
+                float radii = AgentRadius + (otherRadius == 0 ? AgentRadius : otherRadius);
                 if (g_TargetLocation == p.GetPosition() && distance <= radii * 1.5f)
                     StopNavigation();
                 float scale = 0f;
