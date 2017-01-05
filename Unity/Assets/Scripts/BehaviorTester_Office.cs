@@ -105,6 +105,13 @@ public class BehaviorTester_Office : MonoBehaviour {
             NPCBehavior ramirez = GameObject.Find("Ramirez").GetComponent<NPCBehavior>();
             BehaviorEvent ramirezPhone = new BehaviorEvent(doEvent => OnThePhoneDistracted(ramirez), new IHasBehaviorObject[] { ramirez });
             ramirezPhone.StartEvent(1f);
+
+            /* Indoor Anali chatty */
+            NPCBehavior anali = GameObject.Find("Anali").GetComponent<NPCBehavior>();
+            NPCBehavior sarah = GameObject.Find("Sarah").GetComponent<NPCBehavior>();
+            NPCObject analiCubicle = GameObject.Find("Anali-Cubicle").GetComponent<NPCObject>();
+            BehaviorEvent analiBeh = new BehaviorEvent(doEvent => DoCubibleChat(anali, sarah, analiCubicle), new IHasBehaviorObject[] { anali });
+            analiBeh.StartEvent(1f);
         }
     }
     
@@ -133,13 +140,35 @@ public class BehaviorTester_Office : MonoBehaviour {
         return new Sequence(agent.NPCBehavior_DoTimedGesture(GESTURE_CODE.STAND_PHONE_CALL, true));
     }
 
+    private Node DoCubibleChat(NPCBehavior agentA, NPCBehavior agentB, NPCObject cubicle) {
+        return new Sequence(
+                DoCubicleWork(agentA, cubicle),
+                new LeafWait(5000),
+                agentB.NPCBehavior_GoTo(agentA.transform, false),
+                agentA.NPCBehavior_DoGesture(GESTURE_CODE.DESK_WRITING, false),
+                agentA.NPCBehavior_DoGesture(GESTURE_CODE.SITTING, false),
+                agentA.NPCBehavior_OrientTowards(agentB.transform.position),
+                agentB.NPCBehavior_LookAt(agentA.transform,true),
+                agentB.NPCBehavior_DoGesture(GESTURE_CODE.WAVE_HELLO),
+                new DecoratorLoop(
+                        new SequenceShuffle(
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.TALK_SHORT),
+                            agentB.NPCBehavior_DoGesture(GESTURE_CODE.TALK_SHORT),
+                            agentB.NPCBehavior_DoGesture(GESTURE_CODE.ACKNOWLEDGE),
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.NEGATE),
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.THINK),
+                            agentB.NPCBehavior_DoGesture(GESTURE_CODE.DISSAPOINTMENT),
+                            agentA.NPCBehavior_DoGesture(GESTURE_CODE.TALK_LONG)
+                            )
+                    )
+            );
+    }
+
     private Node DoCubicleWork(NPCBehavior agent, NPCObject cubicle) {
         NPCObject chair = cubicle.transform.Find("Chair").GetComponent<NPCObject>();
         return new Sequence(agent.NPCBehavior_TakeSit(chair),
                             new SequenceShuffle(
-                                agent.NPCBehavior_DoGesture(GESTURE_CODE.DESK_WRITING,true),
-                                new LeafWait(3500),
-                                agent.NPCBehavior_DoGesture(GESTURE_CODE.DESK_WRITING, false)
+                                agent.NPCBehavior_DoGesture(GESTURE_CODE.DESK_WRITING,true)
                             )
                         );
     }

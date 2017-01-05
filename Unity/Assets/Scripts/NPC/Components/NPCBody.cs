@@ -628,8 +628,9 @@ namespace NPC {
             Vector3 targetDirection = g_TargetLocation - transform.position;
             if((distance <= DistanceTolerance*2f) && g_NavQueue.Count == 1) {
                 RaycastHit h;
-                if (Physics.Raycast(Head.position, targetDirection, out h, 0.5f)) {
-                    goto NextPoint;
+                if (Physics.Raycast(Head.position, targetDirection, out h, 1.5f)) {
+                    if(h.transform.gameObject.GetComponent<NPCController>() != null)
+                        goto NextPoint;
                 }
             }
             if(EnableSocialForces) {
